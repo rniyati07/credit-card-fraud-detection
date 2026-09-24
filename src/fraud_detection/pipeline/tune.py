@@ -223,6 +223,7 @@ def tune_candidates(config: Config, config_path: str | Path) -> TuningResult:
         validation_report_path=config.paths.validation_report,
         stage=STAGE,
         run_type=RUN_TYPE,
+        output_paths=(config.paths.reports_dir, config.paths.models_dir),
     )
     setup_experiment(config.mlflow)
 

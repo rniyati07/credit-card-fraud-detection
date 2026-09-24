@@ -230,6 +230,7 @@ def train_baselines(config: Config, config_path: str | Path) -> BaselineResult:
         validation_report_path=config.paths.validation_report,
         stage=STAGE,
         run_type=RUN_TYPE,
+        output_paths=(config.paths.reports_dir, config.paths.models_dir),
     )
     setup_experiment(config.mlflow)
 

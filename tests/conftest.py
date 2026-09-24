@@ -26,7 +26,7 @@ REQUIRED_COLUMNS = ["Time", *FEATURES, "Class"]
 def make_config_dict(tmp_path: Path) -> dict[str, Any]:
     """Config mapping mirroring config/config.yaml, with paths under ``tmp_path``."""
     return {
-        "project": {"name": "test", "seed": 42},
+        "project": {"name": "test", "model_version": "1.0.0", "seed": 42},
         "paths": {
             "raw": str(tmp_path / "raw" / "creditcard.csv"),
             "interim": str(tmp_path / "interim" / "clean.csv"),
@@ -38,6 +38,9 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "baseline_dir": str(tmp_path / "reports" / "baseline"),
             "candidates_dir": str(tmp_path / "models" / "candidates"),
             "tuning_dir": str(tmp_path / "reports" / "tuning"),
+            "models_dir": str(tmp_path / "models"),
+            "reports_dir": str(tmp_path / "reports"),
+            "figures_dir": str(tmp_path / "reports" / "figures"),
         },
         "schema": {
             "target": "Class",
@@ -94,7 +97,15 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
                 "xgboost": {"max_depth": [2, 3], "learning_rate": [0.1, 0.3]},
             },
         },
-        "threshold": {"reference_threshold": 0.5},
+        "threshold": {
+            "r_min": 0.8,
+            "r_min_confirmed": False,
+            "grid": {"start": 0.01, "stop": 0.99, "step": 0.01},
+            "include_pr_curve_points": True,
+            "fallback": "f2",
+            "reference_threshold": 0.5,
+        },
+        "selection": {"pr_auc_tie_tolerance": 0.01},
         "mlflow": {
             "tracking_uri": f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}",
             "experiment_name": "test-experiment",

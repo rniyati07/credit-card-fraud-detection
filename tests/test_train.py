@@ -199,3 +199,19 @@ def test_missing_partitions_fail_and_remove_stale_outputs(config_file) -> None:
 
 def test_invalid_config_exit_code(tmp_path) -> None:
     assert main(["--config", str(tmp_path / "missing.yaml")]) == 2
+
+
+def test_predict_proba_is_bit_reproducible_for_parallel_forests(env) -> None:
+    from fraud_detection.features.preprocess import split_features_target
+    from fraud_detection.models.train import MODEL_STEP, build_model_pipeline, predict_proba
+
+    config, _ = env
+    train = pd.read_csv(config.paths.processed_dir / "train.csv")
+    x, y = split_features_target(train, config.schema)
+    pipe = build_model_pipeline("random_forest", {"n_estimators": 50, "n_jobs": -1},
+                                config.schema, config.preprocessing, 42, y).fit(x, y)
+
+    runs = [predict_proba(pipe, x) for _ in range(3)]
+    assert all(np.array_equal(runs[0], r) for r in runs[1:])
+    assert pipe.named_steps[MODEL_STEP].n_jobs == -1  # restored
+    np.testing.assert_allclose(runs[0], pipe.predict_proba(x)[:, 1], atol=1e-12)

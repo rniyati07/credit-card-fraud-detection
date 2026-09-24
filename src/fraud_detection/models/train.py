@@ -97,7 +97,20 @@ def fit_model_pipeline(pipeline: Pipeline, x_train: pd.DataFrame, y_train: pd.Se
 
 
 def predict_proba(pipeline: Pipeline, x: pd.DataFrame) -> np.ndarray:
-    """Fraud probability ``P(Class = 1 | x)`` for every row."""
+    """Fraud probability ``P(Class = 1 | x)`` for every row, bit-for-bit reproducible.
+
+    A multi-threaded ``RandomForestClassifier`` sums per-tree probabilities in thread
+    completion order, which changes the last bit of a few probabilities between calls.
+    Forests are therefore scored single-threaded here; the fitted object is not modified.
+    """
+    model = pipeline.named_steps[MODEL_STEP]
+    if isinstance(model, RandomForestClassifier) and model.n_jobs not in (None, 1):
+        original = model.n_jobs
+        model.n_jobs = 1
+        try:
+            return pipeline.predict_proba(x)[:, 1]
+        finally:
+            model.n_jobs = original
     return pipeline.predict_proba(x)[:, 1]
 
 

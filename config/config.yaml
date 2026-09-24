@@ -1,8 +1,9 @@
 # Single source of run-time parameters (DOC-03 §5, DOC-05 §7).
-# Sections are added milestone by milestone (currently M1-M5).
+# Sections are added milestone by milestone (currently M1-M6).
 
 project:
   name: credit-card-fraud-detection
+  model_version: "1.0.0"     # base; frozen model version = <this>+<git short sha> (DOC-03 MD-13)
   seed: 42
 
 paths:
@@ -16,6 +17,9 @@ paths:
   baseline_dir: reports/baseline                                  # M4 baseline training outputs
   candidates_dir: models/candidates                               # M5 tuned candidates: lr/rf/xgb.joblib
   tuning_dir: reports/tuning                                      # M5 tuning reports
+  models_dir: models                                              # M6 frozen model.joblib + train_metadata.json
+  reports_dir: reports                                            # M6 model_comparison.csv, threshold_analysis_<model>.csv, model_selection.md
+  figures_dir: reports/figures                                    # M6 P/R-vs-threshold plots, validation confusion matrices
 
 schema:
   target: Class
@@ -86,8 +90,16 @@ tuning:                      # train-only CV search (DOC-02 §10, TD-09); valida
       colsample_bytree: [0.8, 1.0]
       min_child_weight: [1, 5]
 
-threshold:
-  reference_threshold: 0.50  # reference only for threshold-dependent metrics; tuned threshold comes in M6
+threshold:                   # chosen on validation only (DOC-02 §13)
+  r_min: 0.80                # confirmed after M6 validation review; fixed for the rest of the project (DOC-05 §23 DEC-01)
+  r_min_confirmed: true      # false = provisional (reports flag it as needing confirmation before M7)
+  grid: {start: 0.01, stop: 0.99, step: 0.01}
+  include_pr_curve_points: true   # add the thresholds of precision_recall_curve to the grid
+  fallback: f2               # if no threshold reaches r_min: maximise F2
+  reference_threshold: 0.50  # reported only
+
+selection:                   # DOC-02 §12 framework
+  pr_auc_tie_tolerance: 0.01 # provisional
 
 mlflow:                      # local store; DOC-03 §5 allows SQLite (MLflow 3.x refuses the file store)
   tracking_uri: sqlite:///mlflow.db

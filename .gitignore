@@ -19,3 +19,5 @@ data/processed/*
 .pytest_cache/
 mlflow.db
 models/candidates/
+# Large generated M6 threshold tables: DVC-managed from M8 (not Git)
+reports/threshold_analysis_*.csv

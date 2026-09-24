@@ -12,13 +12,19 @@ import json
 import logging
 import os
 import subprocess
+import tempfile
+from collections.abc import Iterator, Sequence
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
 os.environ.setdefault("MLFLOW_DISABLE_AGENT_HINT", "1")  # suppress an import-time console hint
+os.environ.setdefault("MLFLOW_ENABLE_ARTIFACTS_PROGRESS_BAR", "false")  # no tqdm bars on artifact downloads
 
 import mlflow  # noqa: E402
 import yaml  # noqa: E402
+from mlflow.exceptions import MlflowException  # noqa: E402
+from mlflow.tracking import MlflowClient  # noqa: E402
 
 from fraud_detection.config import MlflowConfig
 
@@ -27,14 +33,21 @@ logger = logging.getLogger(__name__)
 UNKNOWN = "unknown"
 
 
-def git_info(cwd: str | Path | None = None) -> dict[str, str]:
-    """Current commit SHA and whether the working tree is dirty ("unknown" without git)."""
+def git_info(cwd: str | Path | None = None, ignore_paths: Sequence[str | Path] = ()) -> dict[str, str]:
+    """Current commit SHA and whether the working tree is dirty ("unknown" without git).
+
+    ``ignore_paths`` (e.g. the generated ``reports/`` and ``models/`` directories) are
+    excluded from the dirty check: pipeline outputs changing does not make the *code,
+    config or docs* that produced a run differ from the commit (DOC-05 §23 DEV-10).
+    """
+    excludes = [f":(exclude){Path(p).as_posix()}" for p in ignore_paths]
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, check=True
         ).stdout.strip()
         status = subprocess.run(
-            ["git", "status", "--porcelain"], cwd=cwd, capture_output=True, text=True, check=True
+            ["git", "status", "--porcelain", "--", ".", *excludes],
+            cwd=cwd, capture_output=True, text=True, check=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         return {"git_commit": UNKNOWN, "git_dirty": UNKNOWN}
@@ -72,10 +85,12 @@ def lineage_tags(
     validation_report_path: str | Path,
     stage: str,
     run_type: str,
+    output_paths: Sequence[str | Path] = (),
 ) -> dict[str, str]:
-    """The DOC-03 §6 run tags."""
+    """The DOC-03 §6 run tags. ``output_paths`` are excluded from ``git_dirty`` (see :func:`git_info`)."""
     return {
-        **git_info(),
+        **git_info(ignore_paths=output_paths),
+        "git_dirty_excludes": ",".join(Path(p).as_posix() for p in output_paths) or "none",
         "data_sha256": raw_data_sha256(validation_report_path),
         "data_dvc_md5": dvc_md5(raw_path),
         "config_hash": file_sha256(config_path),
@@ -94,6 +109,73 @@ def setup_experiment(config: MlflowConfig) -> str:
 
 def _log_params(params: dict[str, Any]) -> None:
     mlflow.log_params({k: "None" if v is None else v for k, v in params.items()})
+
+
+def log_to_active_run(
+    *,
+    params: dict[str, Any] | None = None,
+    metrics: dict[str, float] | None = None,
+    tags: dict[str, str] | None = None,
+    json_artifacts: dict[str, Any] | None = None,
+    file_artifacts: list[Path] | None = None,
+) -> None:
+    """Log to the currently active run."""
+    if params:
+        _log_params(params)
+    if metrics:
+        mlflow.log_metrics(metrics)
+    if tags:
+        mlflow.set_tags(tags)
+    for name, payload in (json_artifacts or {}).items():
+        mlflow.log_dict(payload, name)
+    for path in file_artifacts or []:
+        mlflow.log_artifact(str(path))
+
+
+@contextmanager
+def start_run(*, run_name: str | None = None, run_id: str | None = None,
+              tags: dict[str, str] | None = None) -> Iterator[Any]:
+    """Start a new run (``run_name``) or resume an existing one (``run_id``)."""
+    with mlflow.start_run(run_name=run_name, run_id=run_id, tags=tags) as run:
+        yield run
+
+
+def append_to_run(run_id: str, **kwargs: Any) -> None:
+    """Resume an existing run and add metrics, tags and artifacts (see :func:`log_to_active_run`)."""
+    with start_run(run_id=run_id):
+        log_to_active_run(**kwargs)
+    logger.info("Appended to MLflow run %s", run_id)
+
+
+def find_run_by_artifact(
+    *, experiment_name: str, run_type: str, model: str, artifact_name: str, sha256: str
+) -> str | None:
+    """Most recent ``run_type`` run of ``model`` whose logged ``artifact_name`` has this SHA-256.
+
+    Identifies the MLflow run that produced a file on disk (e.g. the M5 candidate run of
+    ``models/candidates/xgb.joblib``) without storing run ids in deterministic outputs.
+    """
+    client = MlflowClient()
+    experiment = client.get_experiment_by_name(experiment_name)
+    if experiment is None:
+        return None
+    runs = client.search_runs(
+        [experiment.experiment_id],
+        filter_string=f"tags.run_type = '{run_type}' and tags.model = '{model}'",
+        order_by=["attributes.start_time DESC"],
+        max_results=100,
+    )
+    with tempfile.TemporaryDirectory() as tmp:
+        for run in runs:
+            try:
+                local = mlflow.artifacts.download_artifacts(
+                    run_id=run.info.run_id, artifact_path=artifact_name, dst_path=tmp
+                )
+            except (MlflowException, OSError):
+                continue
+            if file_sha256(local) == sha256:
+                return run.info.run_id
+    return None
 
 
 def log_run(

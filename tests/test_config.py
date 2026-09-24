@@ -150,3 +150,35 @@ def test_invalid_m5_settings_raise(config_dict: dict[str, Any], mutate, message)
     mutate(config_dict)
     with pytest.raises(ConfigError, match=message):
         parse_config(config_dict)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda c: c["project"].update(model_version=""), "model_version"),
+        (lambda c: c["threshold"].update(r_min=0), r"r_min must be in \(0, 1\]"),
+        (lambda c: c["threshold"].update(r_min=1.2), r"r_min must be in \(0, 1\]"),
+        (lambda c: c["threshold"]["grid"].update(start=0.0), "0 < start <= stop < 1"),
+        (lambda c: c["threshold"]["grid"].update(stop=1.0), "0 < start <= stop < 1"),
+        (lambda c: c["threshold"]["grid"].update(step=0), "step must be > 0"),
+        (lambda c: c["threshold"].update(include_pr_curve_points="yes"), "must be a boolean"),
+        (lambda c: c["threshold"].update(r_min_confirmed="yes"), "r_min_confirmed' must be a boolean"),
+        (lambda c: c["threshold"].update(fallback="f1"), "fallback must be one of"),
+        (lambda c: c["selection"].update(pr_auc_tie_tolerance=-0.1), "pr_auc_tie_tolerance"),
+        (lambda c: c.pop("selection"), "selection"),
+    ],
+)
+def test_invalid_m6_settings_raise(config_dict: dict[str, Any], mutate, message) -> None:
+    mutate(config_dict)
+    with pytest.raises(ConfigError, match=message):
+        parse_config(config_dict)
+
+
+def test_repository_config_m6_values() -> None:
+    config = load_config(Path(__file__).parents[1] / "config" / "config.yaml")
+    t = config.threshold
+    assert (t.r_min, t.grid_start, t.grid_stop, t.grid_step) == (0.80, 0.01, 0.99, 0.01)
+    assert t.include_pr_curve_points is True and t.fallback == "f2" and t.reference_threshold == 0.5
+    assert t.r_min_confirmed is True  # confirmed after M6 review (DOC-05 §23 DEC-01)
+    assert config.selection.pr_auc_tie_tolerance == 0.01
+    assert config.project.model_version == "1.0.0"

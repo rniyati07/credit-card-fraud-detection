@@ -29,6 +29,7 @@ SUPPORTED_IMBALANCE_STRATEGIES = ("class_weight",)
 TUNING_SCORING = "average_precision"
 MAX_TUNING_ITERATIONS = 10
 RESERVED_TUNING_PARAMS = ("random_state", "scale_pos_weight", "class_weight")
+SUPPORTED_THRESHOLD_FALLBACKS = ("f2",)
 
 
 class ConfigError(ValueError):
@@ -40,6 +41,7 @@ class ProjectConfig:
     """Project-wide settings."""
 
     name: str
+    model_version: str
     seed: int
 
 
@@ -57,6 +59,9 @@ class PathsConfig:
     baseline_dir: Path
     candidates_dir: Path
     tuning_dir: Path
+    models_dir: Path
+    reports_dir: Path
+    figures_dir: Path
 
 
 @dataclass(frozen=True)
@@ -146,9 +151,23 @@ class TuningConfig:
 
 @dataclass(frozen=True)
 class ThresholdConfig:
-    """Decision-threshold settings. Only the 0.50 reference exists before M6 tuning."""
+    """Validation-only threshold optimisation (DOC-02 §13)."""
 
+    r_min: float
+    r_min_confirmed: bool
+    grid_start: float
+    grid_stop: float
+    grid_step: float
+    include_pr_curve_points: bool
+    fallback: str
     reference_threshold: float
+
+
+@dataclass(frozen=True)
+class SelectionConfig:
+    """Model-selection framework settings (DOC-02 §12)."""
+
+    pr_auc_tie_tolerance: float
 
 
 @dataclass(frozen=True)
@@ -175,6 +194,7 @@ class Config:
     models: ModelsConfig
     tuning: TuningConfig
     threshold: ThresholdConfig
+    selection: SelectionConfig
     mlflow: MlflowConfig
 
 
@@ -202,6 +222,12 @@ def _str_list(value: Any, name: str) -> tuple[str, ...]:
 def _int(value: Any, name: str) -> int:
     if isinstance(value, bool) or not isinstance(value, int):
         raise ConfigError(f"Config key '{name}' must be an integer")
+    return value
+
+
+def _non_empty_str(value: Any, name: str) -> str:
+    if not isinstance(value, str) or not value.strip():
+        raise ConfigError(f"Config key '{name}' must be a non-empty string")
     return value
 
 
@@ -444,12 +470,49 @@ def _parse_tuning(section: Mapping[str, Any], models: ModelsConfig) -> TuningCon
 
 
 def _parse_threshold(section: Mapping[str, Any]) -> ThresholdConfig:
-    reference = _float(
-        _get(section, "reference_threshold", "threshold"), "threshold.reference_threshold"
+    grid = _get(section, "grid", "threshold")
+    if not isinstance(grid, Mapping):
+        raise ConfigError("Config key 'threshold.grid' must be a mapping")
+    include = _get(section, "include_pr_curve_points", "threshold")
+    if not isinstance(include, bool):
+        raise ConfigError("Config key 'threshold.include_pr_curve_points' must be a boolean")
+    confirmed = _get(section, "r_min_confirmed", "threshold")
+    if not isinstance(confirmed, bool):
+        raise ConfigError("Config key 'threshold.r_min_confirmed' must be a boolean")
+    threshold = ThresholdConfig(
+        r_min=_float(_get(section, "r_min", "threshold"), "threshold.r_min"),
+        r_min_confirmed=confirmed,
+        grid_start=_float(_get(grid, "start", "threshold.grid"), "threshold.grid.start"),
+        grid_stop=_float(_get(grid, "stop", "threshold.grid"), "threshold.grid.stop"),
+        grid_step=_float(_get(grid, "step", "threshold.grid"), "threshold.grid.step"),
+        include_pr_curve_points=include,
+        fallback=str(_get(section, "fallback", "threshold")),
+        reference_threshold=_float(
+            _get(section, "reference_threshold", "threshold"), "threshold.reference_threshold"
+        ),
     )
-    if not 0.0 < reference < 1.0:
+    if not 0.0 < threshold.r_min <= 1.0:
+        raise ConfigError("threshold.r_min must be in (0, 1]")
+    if not 0.0 < threshold.grid_start <= threshold.grid_stop < 1.0:
+        raise ConfigError("threshold.grid must satisfy 0 < start <= stop < 1")
+    if threshold.grid_step <= 0:
+        raise ConfigError("threshold.grid.step must be > 0")
+    if threshold.fallback not in SUPPORTED_THRESHOLD_FALLBACKS:
+        raise ConfigError(f"threshold.fallback must be one of {list(SUPPORTED_THRESHOLD_FALLBACKS)}")
+    if not 0.0 < threshold.reference_threshold < 1.0:
         raise ConfigError("threshold.reference_threshold must be in (0, 1)")
-    return ThresholdConfig(reference_threshold=reference)
+    return threshold
+
+
+def _parse_selection(section: Mapping[str, Any]) -> SelectionConfig:
+    selection = SelectionConfig(
+        pr_auc_tie_tolerance=_float(
+            _get(section, "pr_auc_tie_tolerance", "selection"), "selection.pr_auc_tie_tolerance"
+        )
+    )
+    if selection.pr_auc_tie_tolerance < 0:
+        raise ConfigError("selection.pr_auc_tie_tolerance must be >= 0")
+    return selection
 
 
 def _parse_mlflow(section: Mapping[str, Any]) -> MlflowConfig:
@@ -477,6 +540,7 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
     return Config(
         project=ProjectConfig(
             name=str(_get(project, "name", "project")),
+            model_version=_non_empty_str(_get(project, "model_version", "project"), "project.model_version"),
             seed=_int(_get(project, "seed", "project"), "project.seed"),
         ),
         paths=PathsConfig(
@@ -490,6 +554,9 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
             baseline_dir=Path(_get(paths, "baseline_dir", "paths")),
             candidates_dir=Path(_get(paths, "candidates_dir", "paths")),
             tuning_dir=Path(_get(paths, "tuning_dir", "paths")),
+            models_dir=Path(_get(paths, "models_dir", "paths")),
+            reports_dir=Path(_get(paths, "reports_dir", "paths")),
+            figures_dir=Path(_get(paths, "figures_dir", "paths")),
         ),
         schema=schema,
         validation=_parse_validation(_section(raw, "validation"), schema),
@@ -501,6 +568,7 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
         models=models,
         tuning=_parse_tuning(_section(raw, "tuning"), models),
         threshold=_parse_threshold(_section(raw, "threshold")),
+        selection=_parse_selection(_section(raw, "selection")),
         mlflow=_parse_mlflow(_section(raw, "mlflow")),
     )
 
