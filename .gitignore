@@ -1,0 +1,17 @@
+venv/
+
+__pycache__/
+*.pyc
+
+mlruns/
+
+.dvc/cache/
+
+models/*.joblib
+
+.ipynb_checkpoints/
+
+.env
+
+data/interim/*
+data/processed/*
