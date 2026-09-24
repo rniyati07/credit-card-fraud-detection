@@ -21,6 +21,14 @@ logger = logging.getLogger(__name__)
 
 DEFAULT_CONFIG_PATH = Path("config/config.yaml")
 EXPECTED_N_FEATURES = 29
+# Invariant: exactly these three candidates may be trained (DOC-01 §9, DOC-05 §7).
+CANDIDATE_MODELS = ("logistic_regression", "random_forest", "xgboost")
+SUPPORTED_IMBALANCE_STRATEGIES = ("class_weight",)
+# Tuning invariants (DOC-02 §10): PR-AUC scoring, at most 10 sampled candidates per model,
+# and no tuning of values fixed by the imbalance strategy or the global seed.
+TUNING_SCORING = "average_precision"
+MAX_TUNING_ITERATIONS = 10
+RESERVED_TUNING_PARAMS = ("random_state", "scale_pos_weight", "class_weight")
 
 
 class ConfigError(ValueError):
@@ -46,6 +54,9 @@ class PathsConfig:
     processed_dir: Path
     split_summary: Path
     temporal_split_summary: Path
+    baseline_dir: Path
+    candidates_dir: Path
+    tuning_dir: Path
 
 
 @dataclass(frozen=True)
@@ -109,6 +120,46 @@ class PreprocessingConfig:
 
 
 @dataclass(frozen=True)
+class ImbalanceConfig:
+    """Class-imbalance handling (DOC-02 §8). Only cost-sensitive learning is supported."""
+
+    strategy: str
+
+
+@dataclass(frozen=True)
+class ModelsConfig:
+    """Enabled candidate models and their fixed parameters (DOC-02 §9)."""
+
+    enabled: tuple[str, ...]
+    params: dict[str, dict[str, Any]]
+
+
+@dataclass(frozen=True)
+class TuningConfig:
+    """Train-only cross-validated hyperparameter search (DOC-02 §10)."""
+
+    cv_folds: int
+    n_iter: int
+    scoring: str
+    search_spaces: dict[str, dict[str, tuple[Any, ...]]]
+
+
+@dataclass(frozen=True)
+class ThresholdConfig:
+    """Decision-threshold settings. Only the 0.50 reference exists before M6 tuning."""
+
+    reference_threshold: float
+
+
+@dataclass(frozen=True)
+class MlflowConfig:
+    """Local MLflow tracking (DOC-03 §6)."""
+
+    tracking_uri: str
+    experiment_name: str
+
+
+@dataclass(frozen=True)
 class Config:
     """Validated project configuration."""
 
@@ -120,6 +171,11 @@ class Config:
     split: SplitConfig
     temporal: TemporalConfig
     preprocessing: PreprocessingConfig
+    imbalance: ImbalanceConfig
+    models: ModelsConfig
+    tuning: TuningConfig
+    threshold: ThresholdConfig
+    mlflow: MlflowConfig
 
 
 def _section(raw: Mapping[str, Any], key: str) -> Mapping[str, Any]:
@@ -303,6 +359,109 @@ def _parse_preprocessing(section: Mapping[str, Any], schema: SchemaConfig) -> Pr
     return PreprocessingConfig(robust_scaled_features=robust)
 
 
+def _parse_imbalance(section: Mapping[str, Any]) -> ImbalanceConfig:
+    strategy = str(_get(section, "strategy", "imbalance"))
+    if strategy not in SUPPORTED_IMBALANCE_STRATEGIES:
+        raise ConfigError(
+            f"imbalance.strategy must be one of {list(SUPPORTED_IMBALANCE_STRATEGIES)}, got '{strategy}'"
+        )
+    return ImbalanceConfig(strategy=strategy)
+
+
+def _parse_models(section: Mapping[str, Any], imbalance: ImbalanceConfig) -> ModelsConfig:
+    enabled = _str_list(_get(section, "enabled", "models"), "models.enabled")
+    if not enabled:
+        raise ConfigError("models.enabled must list at least one model")
+    unknown = sorted(set(enabled) - set(CANDIDATE_MODELS))
+    if unknown:
+        raise ConfigError(
+            f"models.enabled has unknown models {unknown}; only {list(CANDIDATE_MODELS)} are allowed"
+        )
+
+    params: dict[str, dict[str, Any]] = {}
+    for name in enabled:
+        model_params = section.get(name, {})
+        if not isinstance(model_params, Mapping):
+            raise ConfigError(f"Config key 'models.{name}' must be a mapping")
+        # Injected by code: the global seed (NFR-002) and the train-only XGBoost weight (L-06).
+        for reserved in ("random_state", "scale_pos_weight"):
+            if reserved in model_params:
+                raise ConfigError(f"models.{name}.{reserved} is set in code and must not be configured")
+        params[name] = dict(model_params)
+
+    if imbalance.strategy == "class_weight":
+        for name in ("logistic_regression", "random_forest"):
+            if name in params and "class_weight" not in params[name]:
+                raise ConfigError(f"models.{name}.class_weight is required for the class_weight strategy")
+    return ModelsConfig(enabled=enabled, params=params)
+
+
+def _parse_search_space(name: str, raw: Any, fixed: Mapping[str, Any]) -> dict[str, tuple[Any, ...]]:
+    if not isinstance(raw, Mapping) or not raw:
+        raise ConfigError(f"tuning.search_spaces.{name} must be a non-empty mapping")
+    space: dict[str, tuple[Any, ...]] = {}
+    for param, values in raw.items():
+        key = f"tuning.search_spaces.{name}.{param}"
+        if param in RESERVED_TUNING_PARAMS:
+            raise ConfigError(f"{key}: '{param}' is fixed by the imbalance strategy or seed and cannot be tuned")
+        if param in fixed:
+            raise ConfigError(f"{key}: '{param}' is already fixed in models.{name}")
+        if not isinstance(values, list) or not values:
+            raise ConfigError(f"{key} must be a non-empty list")
+        if not all(v is None or isinstance(v, (bool, int, float, str)) for v in values):
+            raise ConfigError(f"{key} values must be scalars (number, string, bool or null)")
+        if len(set(map(repr, values))) != len(values):
+            raise ConfigError(f"{key} contains duplicate values")
+        space[str(param)] = tuple(values)
+    return space
+
+
+def _parse_tuning(section: Mapping[str, Any], models: ModelsConfig) -> TuningConfig:
+    tuning_config = TuningConfig(
+        cv_folds=_int(_get(section, "cv_folds", "tuning"), "tuning.cv_folds"),
+        n_iter=_int(_get(section, "n_iter", "tuning"), "tuning.n_iter"),
+        scoring=str(_get(section, "scoring", "tuning")),
+        search_spaces={},
+    )
+    if tuning_config.cv_folds < 2:
+        raise ConfigError("tuning.cv_folds must be >= 2")
+    if not 1 <= tuning_config.n_iter <= MAX_TUNING_ITERATIONS:
+        raise ConfigError(f"tuning.n_iter must be in [1, {MAX_TUNING_ITERATIONS}] (DOC-02 §10)")
+    if tuning_config.scoring != TUNING_SCORING:
+        raise ConfigError(f"tuning.scoring must be '{TUNING_SCORING}' (PR-AUC, DOC-02 §10)")
+
+    spaces = _get(section, "search_spaces", "tuning")
+    if not isinstance(spaces, Mapping):
+        raise ConfigError("Config key 'tuning.search_spaces' must be a mapping")
+    if set(spaces) != set(models.enabled):
+        raise ConfigError(
+            "tuning.search_spaces must define exactly the enabled models "
+            f"(missing: {sorted(set(models.enabled) - set(spaces))}, extra: {sorted(set(spaces) - set(models.enabled))})"
+        )
+    for name in models.enabled:
+        tuning_config.search_spaces[name] = _parse_search_space(name, spaces[name], models.params[name])
+    return tuning_config
+
+
+def _parse_threshold(section: Mapping[str, Any]) -> ThresholdConfig:
+    reference = _float(
+        _get(section, "reference_threshold", "threshold"), "threshold.reference_threshold"
+    )
+    if not 0.0 < reference < 1.0:
+        raise ConfigError("threshold.reference_threshold must be in (0, 1)")
+    return ThresholdConfig(reference_threshold=reference)
+
+
+def _parse_mlflow(section: Mapping[str, Any]) -> MlflowConfig:
+    mlflow = MlflowConfig(
+        tracking_uri=str(_get(section, "tracking_uri", "mlflow")),
+        experiment_name=str(_get(section, "experiment_name", "mlflow")),
+    )
+    if not mlflow.tracking_uri or not mlflow.experiment_name:
+        raise ConfigError("mlflow.tracking_uri and mlflow.experiment_name must be non-empty")
+    return mlflow
+
+
 def parse_config(raw: Mapping[str, Any]) -> Config:
     """Build a validated :class:`Config` from an already-parsed YAML mapping.
 
@@ -312,6 +471,8 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
     project = _section(raw, "project")
     paths = _section(raw, "paths")
     schema = _parse_schema(_section(raw, "schema"))
+    imbalance = _parse_imbalance(_section(raw, "imbalance"))
+    models = _parse_models(_section(raw, "models"), imbalance)
 
     return Config(
         project=ProjectConfig(
@@ -326,6 +487,9 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
             processed_dir=Path(_get(paths, "processed_dir", "paths")),
             split_summary=Path(_get(paths, "split_summary", "paths")),
             temporal_split_summary=Path(_get(paths, "temporal_split_summary", "paths")),
+            baseline_dir=Path(_get(paths, "baseline_dir", "paths")),
+            candidates_dir=Path(_get(paths, "candidates_dir", "paths")),
+            tuning_dir=Path(_get(paths, "tuning_dir", "paths")),
         ),
         schema=schema,
         validation=_parse_validation(_section(raw, "validation"), schema),
@@ -333,6 +497,11 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
         split=_parse_split(_section(raw, "split"), schema),
         temporal=_parse_temporal(_section(raw, "temporal")),
         preprocessing=_parse_preprocessing(_section(raw, "preprocessing"), schema),
+        imbalance=imbalance,
+        models=models,
+        tuning=_parse_tuning(_section(raw, "tuning"), models),
+        threshold=_parse_threshold(_section(raw, "threshold")),
+        mlflow=_parse_mlflow(_section(raw, "mlflow")),
     )
 
 

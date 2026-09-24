@@ -17,3 +17,5 @@ data/interim/*
 data/processed/*
 *.egg-info/
 .pytest_cache/
+mlflow.db
+models/candidates/

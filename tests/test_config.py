@@ -109,3 +109,44 @@ def test_config_round_trips_through_yaml(tmp_path: Path, config_dict: dict[str, 
     path = tmp_path / "c.yaml"
     path.write_text(yaml.safe_dump(config_dict))
     assert load_config(path).schema.target == "Class"
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda c: c["imbalance"].update(strategy="smote"), "imbalance.strategy"),
+        (lambda c: c["models"].update(enabled=["logistic_regression", "svm"]), "unknown models"),
+        (lambda c: c["models"].update(enabled=[]), "at least one model"),
+        (lambda c: c["models"]["xgboost"].update(scale_pos_weight=10), "scale_pos_weight is set in code"),
+        (lambda c: c["models"]["random_forest"].update(random_state=1), "random_state is set in code"),
+        (lambda c: c["models"]["random_forest"].pop("class_weight"), "class_weight is required"),
+        (lambda c: c["threshold"].update(reference_threshold=1.0), "reference_threshold"),
+        (lambda c: c["mlflow"].update(experiment_name=""), "non-empty"),
+    ],
+)
+def test_invalid_m4_settings_raise(config_dict: dict[str, Any], mutate, message) -> None:
+    mutate(config_dict)
+    with pytest.raises(ConfigError, match=message):
+        parse_config(config_dict)
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda c: c["tuning"].update(n_iter=11), r"n_iter must be in \[1, 10\]"),
+        (lambda c: c["tuning"].update(cv_folds=1), "cv_folds must be >= 2"),
+        (lambda c: c["tuning"].update(scoring="roc_auc"), "scoring must be 'average_precision'"),
+        (lambda c: c["tuning"]["search_spaces"].pop("xgboost"), "missing: \['xgboost'\]"),
+        (lambda c: c["tuning"]["search_spaces"].update(svm={"C": [1]}), "extra: \['svm'\]"),
+        (lambda c: c["tuning"]["search_spaces"]["random_forest"].update(class_weight=["balanced"]), "cannot be tuned"),
+        (lambda c: c["tuning"]["search_spaces"]["xgboost"].update(scale_pos_weight=[1, 10]), "cannot be tuned"),
+        (lambda c: c["tuning"]["search_spaces"]["random_forest"].update(n_jobs=[1, 2]), "already fixed"),
+        (lambda c: c["tuning"]["search_spaces"]["logistic_regression"].update(C=[]), "non-empty list"),
+        (lambda c: c["tuning"]["search_spaces"]["logistic_regression"].update(C=[1, 1]), "duplicate"),
+        (lambda c: c["tuning"]["search_spaces"]["logistic_regression"].update(C=[[1]]), "scalars"),
+    ],
+)
+def test_invalid_m5_settings_raise(config_dict: dict[str, Any], mutate, message) -> None:
+    mutate(config_dict)
+    with pytest.raises(ConfigError, match=message):
+        parse_config(config_dict)

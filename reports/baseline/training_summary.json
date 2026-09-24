@@ -1,0 +1,169 @@
+{
+  "stage": "train",
+  "scope": "M4 baseline training (untuned; no threshold tuning, no model selection)",
+  "seed": 42,
+  "reference_threshold": 0.5,
+  "imbalance_strategy": "class_weight",
+  "target": "Class",
+  "feature_order": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "n_features": 29,
+  "data": {
+    "train": {
+      "path": "data/processed/train.csv",
+      "sha256": "3afbfc12dacbeef313469b4d3db329a20244e599ccf51504fc0b8f64305655a8",
+      "rows": 168815,
+      "fraud_count": 295,
+      "prevalence": 0.0017474750466486982
+    },
+    "val": {
+      "path": "data/processed/val.csv",
+      "sha256": "3aa023bee90dff65973cdc0e2c5a359f404a6c0693fb6c5ae1ab89c9702bc6db",
+      "rows": 36175,
+      "fraud_count": 63,
+      "prevalence": 0.001741534208707671
+    }
+  },
+  "partitions_not_read": [
+    "test",
+    "temporal_holdout"
+  ],
+  "lineage": {
+    "data_sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
+    "data_dvc_md5": "e90efcb83d69faf99fcab8b0255024de",
+    "config_hash": "e61a9c660adf308b71222ad0a6bb6ade558353f6eb878c882f3d5021dd8e3a6c"
+  },
+  "mlflow": {
+    "tracking_uri": "sqlite:///mlflow.db",
+    "experiment_name": "credit-card-fraud-detection",
+    "run_type": "baseline"
+  },
+  "models": {
+    "logistic_regression": {
+      "estimator": "sklearn.linear_model._logistic.LogisticRegression",
+      "imbalance_handling": {
+        "class_weight": "balanced"
+      },
+      "params": {
+        "C": 1.0,
+        "class_weight": "balanced",
+        "dual": false,
+        "fit_intercept": true,
+        "intercept_scaling": 1,
+        "l1_ratio": 0.0,
+        "max_iter": 1000,
+        "n_jobs": null,
+        "penalty": "deprecated",
+        "random_state": 42,
+        "solver": "lbfgs",
+        "tol": 0.0001,
+        "verbose": 0,
+        "warm_start": false
+      }
+    },
+    "random_forest": {
+      "estimator": "sklearn.ensemble._forest.RandomForestClassifier",
+      "imbalance_handling": {
+        "class_weight": "balanced_subsample"
+      },
+      "params": {
+        "bootstrap": true,
+        "ccp_alpha": 0.0,
+        "class_weight": "balanced_subsample",
+        "criterion": "gini",
+        "max_depth": null,
+        "max_features": "sqrt",
+        "max_leaf_nodes": null,
+        "max_samples": null,
+        "min_impurity_decrease": 0.0,
+        "min_samples_leaf": 1,
+        "min_samples_split": 2,
+        "min_weight_fraction_leaf": 0.0,
+        "monotonic_cst": null,
+        "n_estimators": 100,
+        "n_jobs": -1,
+        "oob_score": false,
+        "random_state": 42,
+        "verbose": 0,
+        "warm_start": false
+      }
+    },
+    "xgboost": {
+      "estimator": "xgboost.sklearn.XGBClassifier",
+      "imbalance_handling": {
+        "scale_pos_weight": 571.2542372881356
+      },
+      "params": {
+        "base_score": null,
+        "booster": null,
+        "callbacks": null,
+        "colsample_bylevel": null,
+        "colsample_bynode": null,
+        "colsample_bytree": null,
+        "device": null,
+        "early_stopping_rounds": null,
+        "enable_categorical": true,
+        "eval_metric": "aucpr",
+        "feature_types": null,
+        "feature_weights": null,
+        "gamma": null,
+        "grow_policy": null,
+        "importance_type": null,
+        "interaction_constraints": null,
+        "learning_rate": null,
+        "max_bin": null,
+        "max_cat_threshold": null,
+        "max_cat_to_onehot": null,
+        "max_delta_step": null,
+        "max_depth": null,
+        "max_leaves": null,
+        "min_child_weight": null,
+        "missing": "nan",
+        "monotone_constraints": null,
+        "multi_strategy": null,
+        "n_estimators": null,
+        "n_jobs": -1,
+        "num_parallel_tree": null,
+        "objective": "binary:logistic",
+        "random_state": 42,
+        "reg_alpha": null,
+        "reg_lambda": null,
+        "sampling_method": null,
+        "scale_pos_weight": 571.2542372881356,
+        "subsample": null,
+        "tree_method": "hist",
+        "validate_parameters": null,
+        "verbosity": null
+      }
+    }
+  }
+}

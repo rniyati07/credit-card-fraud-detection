@@ -1,0 +1,55 @@
+{
+  "basis": "validation PR-AUC of the tuned candidates",
+  "hyperparameters_chosen_by": "train-only stratified CV average precision (validation not used)",
+  "status": "Provisional leader for M6. Final selection applies the full DOC-02 \u00a712 framework (eligibility, PR-AUC, operating point, tie-break, LR-baseline sanity) and may differ.",
+  "not_used": [
+    "test",
+    "temporal_holdout",
+    "threshold tuning"
+  ],
+  "leader": "xgboost",
+  "leader_val_pr_auc": 0.8275724479453841,
+  "runner_up": "random_forest",
+  "margin_over_runner_up": 0.013023169721608108,
+  "ranking_by_val_pr_auc": [
+    "xgboost",
+    "random_forest",
+    "logistic_regression"
+  ],
+  "best_per_model": {
+    "xgboost": {
+      "candidate_file": "models/candidates/xgb.joblib",
+      "best_params": {
+        "colsample_bytree": 0.8,
+        "learning_rate": 0.1,
+        "max_depth": 4,
+        "min_child_weight": 5,
+        "n_estimators": 400,
+        "subsample": 0.8
+      },
+      "cv_best_average_precision": 0.8701369460422564,
+      "val_pr_auc": 0.8275724479453841,
+      "val_roc_auc": 0.9665102749119142
+    },
+    "random_forest": {
+      "candidate_file": "models/candidates/rf.joblib",
+      "best_params": {
+        "max_depth": 20,
+        "min_samples_leaf": 1,
+        "n_estimators": 400
+      },
+      "cv_best_average_precision": 0.8489318476315301,
+      "val_pr_auc": 0.814549278223776,
+      "val_roc_auc": 0.9466186766391684
+    },
+    "logistic_regression": {
+      "candidate_file": "models/candidates/lr.joblib",
+      "best_params": {
+        "C": 1
+      },
+      "cv_best_average_precision": 0.7244901614621709,
+      "val_pr_auc": 0.666168016649922,
+      "val_roc_auc": 0.9731393425040966
+    }
+  }
+}

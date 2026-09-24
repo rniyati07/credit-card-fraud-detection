@@ -1,4 +1,4 @@
-"""Leakage guards for preprocessing (DOC-05 M3, §10 L-03 / L-12; DOC-03 §9).
+"""Leakage guards for preprocessing and training (DOC-05 M3/M4, §10 L-03 / L-04 / L-06 / L-12; DOC-03 §9).
 
 The preprocessor must learn its statistics from the data it is fitted on (train)
 and nothing else, and ``Time`` / the target / the row id must never reach it.
@@ -7,11 +7,14 @@ and nothing else, and ``Time`` / the target / the row id must never reach it.
 from __future__ import annotations
 
 import dataclasses
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
 import pytest
+import yaml
 
+from fraud_detection.config import load_config
 from fraud_detection.data.split import split_dataset
 from fraud_detection.features.preprocess import (
     IMPUTE_STEP,
@@ -22,6 +25,16 @@ from fraud_detection.features.preprocess import (
     feature_groups,
     split_features_target,
 )
+from fraud_detection.models.train import (
+    MODEL_STEP,
+    PREPROCESS_STEP,
+    TrainingError,
+    build_model_pipeline,
+    fit_model_pipeline,
+)
+from fraud_detection.pipeline import split as split_stage
+from fraud_detection.pipeline import train as train_stage
+from fraud_detection.pipeline.train import partition_path
 
 
 @pytest.fixture
@@ -135,3 +148,69 @@ def test_extra_columns_are_ignored(fitted, partitions, schema_config) -> None:
     x_val, _ = split_features_target(partitions["val"], schema_config)
     with_extras = partitions["val"]  # includes row_id, Time, Class
     np.testing.assert_array_equal(pre.transform(with_extras), pre.transform(x_val))
+
+
+# ------------------------------------------------------------------ train stage (DOC-05 M4, L-04/L-06)
+
+
+@pytest.fixture
+def split_env(tmp_path, config_dict_factory, transactions_factory):
+    config_path = tmp_path / "config.yaml"
+    config_path.write_text(yaml.safe_dump(config_dict_factory(tmp_path)), encoding="utf-8")
+    config = load_config(config_path)
+    config.paths.interim.parent.mkdir(parents=True)
+    transactions_factory(n_rows=2000, n_fraud=100, seed=9, signal=3.0).to_csv(config.paths.interim, index=False)
+    assert split_stage.main(["--config", str(config_path), "--log-level", "WARNING"]) == 0
+    return config, config_path
+
+
+def test_train_stage_never_reads_test_or_holdout(split_env, monkeypatch) -> None:
+    config, config_path = split_env
+    # Structural guard: remove the forbidden files entirely, then also spy on every CSV read.
+    for name in ("test.csv", "temporal_holdout.csv"):
+        (config.paths.processed_dir / name).unlink()
+    read_paths: list[str] = []
+    real_read_csv = pd.read_csv
+
+    def spy(path, *args, **kwargs):
+        read_paths.append(str(path))
+        return real_read_csv(path, *args, **kwargs)
+
+    monkeypatch.setattr(train_stage.pd, "read_csv", spy)
+
+    assert train_stage.main(["--config", str(config_path), "--log-level", "WARNING"]) == 0
+    assert sorted(Path(p).name for p in read_paths) == ["train.csv", "val.csv"]
+
+
+def test_partition_path_refuses_test_and_holdout(split_env) -> None:
+    config, _ = split_env
+    for name in ("test", "temporal_holdout"):
+        with pytest.raises(TrainingError, match="must not read"):
+            partition_path(config, name)
+
+
+def test_scale_pos_weight_uses_train_labels_only(partitions, schema_config, preprocessing_config) -> None:
+    _, y_train = split_features_target(partitions["train"], schema_config)
+    everything = pd.concat([partitions[n] for n in ("train", "val", "test")])
+    _, y_all = split_features_target(everything, schema_config)
+
+    pipe = build_model_pipeline("xgboost", {}, schema_config, preprocessing_config, 42, y_train)
+    weight = pipe.named_steps[MODEL_STEP].get_params()["scale_pos_weight"]
+
+    assert weight == pytest.approx((y_train == 0).sum() / (y_train == 1).sum())
+    assert weight != pytest.approx((y_all == 0).sum() / (y_all == 1).sum())
+
+
+def test_model_pipeline_fits_preprocessing_on_train_only(partitions, schema_config, preprocessing_config) -> None:
+    x_train, y_train = split_features_target(partitions["train"], schema_config)
+    pipe = build_model_pipeline(
+        "logistic_regression", {"class_weight": "balanced", "max_iter": 1000},
+        schema_config, preprocessing_config, 42, y_train,
+    )
+    fit_model_pipeline(pipe, x_train, y_train)
+    x_val, _ = split_features_target(partitions["val"], schema_config)
+    pipe.predict_proba(x_val)
+
+    pre = pipe.named_steps[PREPROCESS_STEP]
+    standard, _ = feature_groups(schema_config, preprocessing_config)
+    np.testing.assert_allclose(_step(pre, STANDARD_GROUP, SCALE_STEP).mean_, x_train[standard].mean())
