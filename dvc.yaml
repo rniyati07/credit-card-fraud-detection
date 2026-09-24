@@ -76,6 +76,7 @@ stages:
       - src/fraud_detection/evaluation/metrics.py
       - src/fraud_detection/evaluation/threshold.py
       - src/fraud_detection/evaluation/plots.py
+      - src/fraud_detection/inference             # shared decision rule apply_threshold (M9)
       - src/fraud_detection/tracking
       - src/fraud_detection/pipeline/train.py
       - src/fraud_detection/pipeline/tune.py
@@ -149,6 +150,7 @@ stages:
       - src/fraud_detection/evaluation/metrics.py
       - src/fraud_detection/evaluation/plots.py
       - src/fraud_detection/evaluation/threshold.py
+      - src/fraud_detection/inference
       - src/fraud_detection/tracking
       - src/fraud_detection/pipeline/train.py
       - src/fraud_detection/pipeline/evaluate.py
@@ -191,6 +193,7 @@ stages:
       - src/fraud_detection/evaluation/metrics.py
       - src/fraud_detection/evaluation/plots.py
       - src/fraud_detection/evaluation/threshold.py
+      - src/fraud_detection/inference
       - src/fraud_detection/tracking
       - src/fraud_detection/pipeline/train.py
       - src/fraud_detection/pipeline/evaluate.py

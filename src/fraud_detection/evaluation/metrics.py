@@ -4,6 +4,9 @@ Threshold-independent metrics (PR-AUC as Average Precision, ROC-AUC) are compute
 probabilities; threshold-dependent metrics (Precision, Recall, F1, F2, confusion matrix)
 at an explicit threshold using the decision rule ``p >= threshold``. Accuracy is
 deliberately not computed: it is not a selection metric (D-03).
+
+The decision rule itself is :func:`fraud_detection.inference.predictor.apply_threshold`, the
+single implementation shared with serving (DOC-04 §6); it is re-exported here for existing callers.
 """
 
 from __future__ import annotations
@@ -20,6 +23,10 @@ from sklearn.metrics import (
     roc_auc_score,
 )
 
+from fraud_detection.inference.predictor import apply_threshold
+
+__all__ = ["apply_threshold", "compute_metrics", "threshold_independent_metrics", "threshold_metrics"]
+
 POSITIVE_LABEL = 1
 
 
@@ -33,11 +40,6 @@ def _as_arrays(y_true: Any, y_proba: Any) -> tuple[np.ndarray, np.ndarray]:
     if set(np.unique(y)) != {0, 1}:
         raise ValueError("y_true must contain both classes 0 and 1")
     return y, p
-
-
-def apply_threshold(y_proba: Any, threshold: float) -> np.ndarray:
-    """Class decisions with the project decision rule: fraud iff ``p >= threshold``."""
-    return (np.asarray(y_proba, dtype=float) >= threshold).astype(int)
 
 
 def threshold_independent_metrics(y_true: Any, y_proba: Any) -> dict[str, float]:

@@ -13,5 +13,8 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
-pythonpath = ["src"]
+pythonpath = ["src", "."]   # "." makes the FastAPI package `app` importable (DOC-04 §12)
 addopts = "-ra"
+markers = [
+    "artifact: needs the real DVC outputs in models/ and data/processed/; skipped when absent (DOC-03 §9)",
+]

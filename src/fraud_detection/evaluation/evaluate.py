@@ -30,7 +30,8 @@ from sklearn.metrics import average_precision_score
 
 from fraud_detection.config import Config, EvaluationConfig, SchemaConfig
 from fraud_detection.data.split import PARTITION_FILENAMES
-from fraud_detection.evaluation.metrics import apply_threshold, compute_metrics, threshold_metrics
+from fraud_detection.evaluation.metrics import compute_metrics, threshold_metrics
+from fraud_detection.inference.predictor import apply_threshold
 from fraud_detection.tracking.mlflow_utils import file_sha256
 
 logger = logging.getLogger(__name__)

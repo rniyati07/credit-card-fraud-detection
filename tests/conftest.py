@@ -217,3 +217,49 @@ def config_file(tmp_path: Path) -> Path:
     path = tmp_path / "config.yaml"
     path.write_text(yaml.safe_dump(make_config_dict(tmp_path)), encoding="utf-8")
     return path
+
+
+# ------------------------------------------------------------------ serving fixtures (M9)
+
+
+def write_serving_artifacts(directory: Path, **config_overrides: Any) -> tuple[Path, Path, dict[str, Any]]:
+    """Fixture artifact pair for serving tests (DOC-04 §12): a tiny pipeline fitted on synthetic
+    29-feature data plus a matching ``model_config.json``. Independent of the real DVC outputs."""
+    import json
+    from importlib import metadata
+
+    import joblib
+    from sklearn.linear_model import LogisticRegression
+    from sklearn.pipeline import Pipeline
+    from sklearn.preprocessing import StandardScaler
+
+    frame = build_transactions(n_rows=400, n_fraud=40, seed=21, signal=3.0)
+    pipeline = Pipeline([("scale", StandardScaler()), ("model", LogisticRegression(max_iter=500))])
+    pipeline.fit(frame[FEATURES], frame["Class"])
+    directory.mkdir(parents=True, exist_ok=True)
+    model_path, config_path = directory / "model.joblib", directory / "model_config.json"
+    joblib.dump(pipeline, model_path)
+    config = {
+        "model_name": "fixture_logistic_regression",
+        "model_version": "0.0.0+fixture",
+        "threshold": 0.5,
+        "threshold_objective": "recall>=r_min_max_precision",
+        "feature_order": list(FEATURES),
+        "target": "Class",
+        "positive_label": 1,
+        "library_versions": {lib: metadata.version(lib) for lib in ("scikit-learn", "xgboost")},
+    } | config_overrides
+    config_path.write_text(json.dumps(config), encoding="utf-8")
+    return model_path, config_path, config
+
+
+@pytest.fixture
+def serving_artifacts(tmp_path: Path) -> tuple[Path, Path, dict[str, Any]]:
+    return write_serving_artifacts(tmp_path / "serving")
+
+
+@pytest.fixture
+def transaction() -> dict[str, float]:
+    """One valid request body (29 features), taken from a synthetic fraud-like row."""
+    row = build_transactions(n_rows=400, n_fraud=40, seed=21, signal=3.0).iloc[0]
+    return {name: float(row[name]) for name in FEATURES}
