@@ -1,3 +1,11 @@
 # Add patterns of files dvc should ignore, which could improve
 # the performance. Learn more at
 # https://dvc.org/doc/user-guide/dvcignore
+
+# Not pipeline inputs: keep them out of workspace scans and directory hashes, so
+# interpreter caches can never make a code dependency look changed (no spurious reruns).
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+mlruns/

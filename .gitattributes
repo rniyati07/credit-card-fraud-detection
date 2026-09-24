@@ -1,0 +1,7 @@
+# Check out text files with LF on every platform (overrides a system core.autocrlf=true).
+# DVC 3 hashes dependency files byte-for-byte, so code/config/report dependencies must have
+# identical bytes in every clone for `dvc status` to match dvc.lock (DOC-03 MAC-03).
+* text=auto eol=lf
+*.png binary
+*.joblib binary
+*.db binary

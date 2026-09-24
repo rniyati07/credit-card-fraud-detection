@@ -31,6 +31,7 @@ from fraud_detection.config import MlflowConfig
 logger = logging.getLogger(__name__)
 
 UNKNOWN = "unknown"
+DVC_LOCK_FILE = "dvc.lock"
 
 
 def git_info(cwd: str | Path | None = None, ignore_paths: Sequence[str | Path] = ()) -> dict[str, str]:
@@ -39,19 +40,29 @@ def git_info(cwd: str | Path | None = None, ignore_paths: Sequence[str | Path] =
     ``ignore_paths`` (e.g. the generated ``reports/`` and ``models/`` directories) are
     excluded from the dirty check: pipeline outputs changing does not make the *code,
     config or docs* that produced a run differ from the commit (DOC-05 §23 DEV-10).
+
+    Dirty means *content* differs from the commit: ``git diff HEAD`` (line-ending normalised, so a
+    tool rewriting an unchanged file with CRLF, as ``dvc repro`` does with ``*.dvc`` files on
+    Windows, is not a change) or any untracked, non-ignored file (DOC-05 §23 DEV-17).
     """
-    excludes = [f":(exclude){Path(p).as_posix()}" for p in ignore_paths]
+    pathspec = ["--", ".", *(f":(exclude){Path(p).as_posix()}" for p in ignore_paths)]
     try:
         commit = subprocess.run(
             ["git", "rev-parse", "HEAD"], cwd=cwd, capture_output=True, text=True, check=True
         ).stdout.strip()
-        status = subprocess.run(
-            ["git", "status", "--porcelain", "--", ".", *excludes],
+        changed = subprocess.run(
+            ["git", "diff", "--quiet", "HEAD", *pathspec], cwd=cwd, capture_output=True, text=True
+        )
+        if changed.returncode not in (0, 1):
+            raise subprocess.CalledProcessError(changed.returncode, changed.args)
+        untracked = subprocess.run(
+            ["git", "ls-files", "--others", "--exclude-standard", *pathspec],
             cwd=cwd, capture_output=True, text=True, check=True,
         ).stdout
     except (OSError, subprocess.CalledProcessError):
         return {"git_commit": UNKNOWN, "git_dirty": UNKNOWN}
-    return {"git_commit": commit, "git_dirty": str(bool(status.strip())).lower()}
+    dirty = changed.returncode == 1 or bool(untracked.strip())
+    return {"git_commit": commit, "git_dirty": str(dirty).lower()}
 
 
 def file_sha256(path: str | Path) -> str:
@@ -87,10 +98,16 @@ def lineage_tags(
     run_type: str,
     output_paths: Sequence[str | Path] = (),
 ) -> dict[str, str]:
-    """The DOC-03 §6 run tags. ``output_paths`` are excluded from ``git_dirty`` (see :func:`git_info`)."""
+    """The DOC-03 §6 run tags. ``output_paths`` are excluded from ``git_dirty`` (see :func:`git_info`).
+
+    ``dvc.lock`` is always excluded too: ``dvc repro`` rewrites it after every stage, so a
+    later stage of a clean reproduction would otherwise see its own pipeline's lock file as
+    a local change (DOC-05 §23 DEV-10).
+    """
+    excluded = [*output_paths, DVC_LOCK_FILE] if output_paths else []
     return {
-        **git_info(ignore_paths=output_paths),
-        "git_dirty_excludes": ",".join(Path(p).as_posix() for p in output_paths) or "none",
+        **git_info(ignore_paths=excluded),
+        "git_dirty_excludes": ",".join(Path(p).as_posix() for p in excluded) or "none",
         "data_sha256": raw_data_sha256(validation_report_path),
         "data_dvc_md5": dvc_md5(raw_path),
         "config_hash": file_sha256(config_path),

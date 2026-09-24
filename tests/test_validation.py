@@ -316,3 +316,10 @@ def test_stage_missing_file_writes_fail_report(config_file) -> None:
 
 def test_stage_invalid_config_exit_code(tmp_path) -> None:
     assert main(["--config", str(tmp_path / "missing.yaml")]) == 2
+
+
+def test_report_is_written_with_lf_line_endings(valid_df, schema_config, validation_config, tmp_path) -> None:
+    # Git-tracked DVC output: identical bytes on every platform (DOC-05 §23 DEV-15).
+    result = _validate(valid_df, schema_config, validation_config)
+    raw = write_report(result.report, tmp_path / "report.json").read_bytes()
+    assert b"\r\n" not in raw and raw.endswith(b"\n")

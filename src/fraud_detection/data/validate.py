@@ -538,7 +538,10 @@ def write_report(report: dict[str, Any], path: str | Path) -> Path:
     path = Path(path)
     path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(json.dumps(report, indent=2, default=_json_default) + "\n", encoding="utf-8")
+    # LF on every platform: the report is a Git-tracked DVC output (DOC-05 §23 DEV-15).
+    tmp.write_text(
+        json.dumps(report, indent=2, default=_json_default) + "\n", encoding="utf-8", newline="\n"
+    )
     os.replace(tmp, path)
     logger.info("Validation report written to %s", path)
     return path

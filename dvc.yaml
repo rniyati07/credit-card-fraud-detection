@@ -1,0 +1,238 @@
+# DVC pipeline (DOC-03 §4.2, MD-05; DOC-05 M8, §8): exactly five stages
+#   validate -> split -> train -> evaluate -> evaluate_temporal
+# EDA (python -m fraud_detection.eda) and the M4 baseline (python -m fraud_detection.pipeline.train)
+# are not stages (DOC-03 MD-16, DOC-05 M8 "Must NOT add stages"; DEV-06).
+#
+# Parameters come from config/config.yaml (DOC-03 §5), listed per stage as the keys its code reads.
+# Git-tracked outputs use `cache: false` (small metrics/reports); everything else lives in the DVC cache
+# (DOC-03 §3). Reproduction of record: `dvc repro --force --no-run-cache` (stages log to MLflow, so they
+# must execute rather than be restored from the run cache).
+
+stages:
+  validate:
+    cmd: python -m fraud_detection.pipeline.validate
+    deps:
+      - data/raw/creditcard.csv
+      - src/fraud_detection/config.py
+      - src/fraud_detection/data/validate.py
+      - src/fraud_detection/pipeline/validate.py
+    params:
+      - config/config.yaml:
+          - project.seed
+          - paths.raw
+          - paths.interim
+          - paths.validation_report
+          - schema
+          - validation
+    outs:
+      - data/interim/clean.csv
+    metrics:
+      - reports/validation/validation_report.json:
+          cache: false
+
+  split:
+    cmd: python -m fraud_detection.pipeline.split
+    deps:
+      - data/interim/clean.csv
+      - src/fraud_detection/config.py
+      - src/fraud_detection/data/split.py
+      - src/fraud_detection/data/validate.py
+      - src/fraud_detection/pipeline/split.py
+    params:
+      - config/config.yaml:
+          - project.seed
+          - paths.interim
+          - paths.processed_dir
+          - paths.split_summary
+          - paths.temporal_split_summary
+          - schema
+          - split
+          - temporal
+    outs:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - data/processed/test.csv
+      - data/processed/temporal_holdout.csv
+    metrics:
+      - reports/split_summary.json:
+          cache: false
+      - reports/temporal/temporal_split_summary.json:
+          cache: false
+
+  # DEV-07 / DEV-09: M5 tuning and M6 threshold optimisation + selection + freeze.
+  # Structural leakage guard (DOC-03 MD-06, MAC-04): no dependency on test.csv or temporal_holdout.csv.
+  train:
+    cmd:
+      - python -m fraud_detection.pipeline.tune
+      - python -m fraud_detection.pipeline.select
+    deps:
+      - data/processed/train.csv
+      - data/processed/val.csv
+      - reports/baseline/model_comparison.json    # M4 baseline, read for the tuning comparison only
+      - src/fraud_detection/config.py
+      - src/fraud_detection/data/split.py
+      - src/fraud_detection/features
+      - src/fraud_detection/models
+      - src/fraud_detection/evaluation/metrics.py
+      - src/fraud_detection/evaluation/threshold.py
+      - src/fraud_detection/evaluation/plots.py
+      - src/fraud_detection/tracking
+      - src/fraud_detection/pipeline/train.py
+      - src/fraud_detection/pipeline/tune.py
+      - src/fraud_detection/pipeline/select.py
+    params:
+      - config/config.yaml:
+          - project.seed
+          - project.model_version
+          - paths.raw
+          - paths.validation_report
+          - paths.processed_dir
+          - paths.baseline_dir
+          - paths.candidates_dir
+          - paths.tuning_dir
+          - paths.models_dir
+          - paths.reports_dir
+          - paths.figures_dir
+          - schema
+          - preprocessing
+          - imbalance
+          - models
+          - tuning
+          - threshold
+          - selection
+          - mlflow
+    outs:
+      - models/candidates/lr.joblib
+      - models/candidates/rf.joblib
+      - models/candidates/xgb.joblib
+      - models/model.joblib
+      - reports/figures/threshold_analysis_logistic_regression.png
+      - reports/figures/threshold_analysis_random_forest.png
+      - reports/figures/threshold_analysis_xgboost.png
+      - reports/figures/val_confusion_matrix_logistic_regression.png
+      - reports/figures/val_confusion_matrix_random_forest.png
+      - reports/figures/val_confusion_matrix_xgboost.png
+      - reports/tuning/tuning_results.csv:
+          cache: false
+      - reports/model_comparison.csv:
+          cache: false
+      - reports/model_selection.md:
+          cache: false
+    metrics:
+      - reports/tuning/tuning_summary.json:
+          cache: false
+      - reports/tuning/best_model.json:
+          cache: false
+      - models/train_metadata.json    # DVC-managed (M7 decision 5)
+    plots:                            # DEC-03: DVC-managed, not Git
+      - reports/threshold_analysis_logistic_regression.csv:
+          x: threshold
+          y: recall
+      - reports/threshold_analysis_random_forest.csv:
+          x: threshold
+          y: recall
+      - reports/threshold_analysis_xgboost.csv:
+          x: threshold
+          y: recall
+
+  evaluate:
+    cmd: python -m fraud_detection.pipeline.evaluate
+    deps:
+      - models/model.joblib
+      - models/train_metadata.json
+      - data/processed/test.csv            # never temporal_holdout.csv (DOC-03 §4.2)
+      - src/fraud_detection/config.py
+      - src/fraud_detection/data/split.py
+      - src/fraud_detection/features/preprocess.py
+      - src/fraud_detection/models/train.py
+      - src/fraud_detection/evaluation/evaluate.py
+      - src/fraud_detection/evaluation/metrics.py
+      - src/fraud_detection/evaluation/plots.py
+      - src/fraud_detection/evaluation/threshold.py
+      - src/fraud_detection/tracking
+      - src/fraud_detection/pipeline/train.py
+      - src/fraud_detection/pipeline/evaluate.py
+    params:
+      - config/config.yaml:
+          - project.seed
+          - paths.raw
+          - paths.validation_report
+          - paths.processed_dir
+          - paths.models_dir
+          - paths.reports_dir
+          - paths.figures_dir
+          - paths.test_metrics
+          - schema
+          - threshold.reference_threshold
+          - evaluation
+          - mlflow
+    outs:
+      - reports/figures/test_confusion_matrix.png
+      - reports/figures/test_pr_curve.png        # DEV-11
+      - reports/figures/test_roc_curve.png       # DEV-11
+    metrics:
+      - reports/test_metrics.json:
+          cache: false
+
+  evaluate_temporal:
+    cmd: python -m fraud_detection.pipeline.evaluate_temporal
+    deps:
+      - models/model.joblib
+      - models/train_metadata.json
+      - data/processed/temporal_holdout.csv
+      - reports/test_metrics.json                       # comparison input; orders this stage after evaluate
+      - reports/temporal/temporal_split_summary.json    # DEV-12
+      - src/fraud_detection/config.py
+      - src/fraud_detection/data/split.py
+      - src/fraud_detection/features/preprocess.py
+      - src/fraud_detection/models/train.py
+      - src/fraud_detection/evaluation/evaluate.py
+      - src/fraud_detection/evaluation/evaluate_temporal.py
+      - src/fraud_detection/evaluation/metrics.py
+      - src/fraud_detection/evaluation/plots.py
+      - src/fraud_detection/evaluation/threshold.py
+      - src/fraud_detection/tracking
+      - src/fraud_detection/pipeline/train.py
+      - src/fraud_detection/pipeline/evaluate.py
+      - src/fraud_detection/pipeline/evaluate_temporal.py
+    params:
+      - config/config.yaml:
+          - project.seed
+          - paths.raw
+          - paths.validation_report
+          - paths.processed_dir
+          - paths.models_dir
+          - paths.reports_dir
+          - paths.test_metrics
+          - paths.temporal_dir
+          - paths.temporal_split_summary
+          - schema
+          - temporal
+          - threshold.reference_threshold
+          - evaluation
+          - mlflow
+    outs:
+      - reports/temporal/temporal_confusion_matrix.png
+      - reports/temporal/temporal_vs_random_comparison.csv:
+          cache: false
+      - reports/temporal/temporal_robustness.md:
+          cache: false
+    metrics:
+      - reports/temporal/temporal_metrics.json:
+          cache: false
+      - models/model_config.json    # final artifact config; output of this stage only (DOC-05 §8)
+
+# Visual threshold curves (DOC-02 §13): `dvc plots show`.
+plots:
+  - threshold_curve_logistic_regression:
+      x: threshold
+      y:
+        reports/threshold_analysis_logistic_regression.csv: [precision, recall, f2]
+  - threshold_curve_random_forest:
+      x: threshold
+      y:
+        reports/threshold_analysis_random_forest.csv: [precision, recall, f2]
+  - threshold_curve_xgboost:
+      x: threshold
+      y:
+        reports/threshold_analysis_xgboost.csv: [precision, recall, f2]

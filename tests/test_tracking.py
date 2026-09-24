@@ -65,6 +65,33 @@ def test_lineage_tags_record_the_excluded_paths(tmp_path: Path) -> None:
         run_type="final",
         output_paths=(Path("reports"), Path("models")),
     )
-    assert tags["git_dirty_excludes"] == "reports,models"
+    assert tags["git_dirty_excludes"] == "reports,models,dvc.lock"
     assert tags["data_dvc_md5"] == "unknown" and tags["data_sha256"] == "unknown"
     assert {"git_commit", "git_dirty", "config_hash", "stage", "run_type"} <= set(tags)
+
+
+def test_line_ending_only_rewrite_is_not_dirty(repo: Path) -> None:
+    # dvc repro rewrites data/raw/*.dvc with CRLF on Windows; content is unchanged (DEV-17).
+    (repo / ".gitattributes").write_text("* text=auto eol=lf\n")
+    (repo / "data.dvc").write_bytes(b"outs:\n- md5: abc\n  path: data.csv\n")
+    _git(repo, "add", ".")
+    _git(repo, "commit", "-q", "-m", "dvc file")
+    (repo / "data.dvc").write_bytes(b"outs:\r\n- md5: abc\r\n  path: data.csv\r\n")
+    assert git_info(cwd=repo, ignore_paths=("reports", "models"))["git_dirty"] == "false"
+    (repo / "data.dvc").write_bytes(b"outs:\r\n- md5: CHANGED\r\n  path: data.csv\r\n")
+    assert git_info(cwd=repo, ignore_paths=("reports", "models"))["git_dirty"] == "true"
+
+
+def test_staged_changes_are_dirty(repo: Path) -> None:
+    (repo / "src" / "code.py").write_text("v2\n")
+    _git(repo, "add", "src/code.py")
+    assert git_info(cwd=repo, ignore_paths=("reports", "models"))["git_dirty"] == "true"
+
+
+def test_dvc_lock_changes_do_not_make_the_tree_dirty(repo: Path) -> None:
+    (repo / "dvc.lock").write_text("schema: '2.0'\n")
+    _git(repo, "add", "dvc.lock")
+    _git(repo, "commit", "-q", "-m", "lock")
+    (repo / "dvc.lock").write_text("schema: '2.0'\nstages: {}\n")  # rewritten by dvc repro
+    assert git_info(cwd=repo, ignore_paths=("reports", "models", "dvc.lock"))["git_dirty"] == "false"
+    assert git_info(cwd=repo, ignore_paths=("reports", "models"))["git_dirty"] == "true"
