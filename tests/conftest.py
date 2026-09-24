@@ -25,6 +25,7 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "raw": str(tmp_path / "raw" / "creditcard.csv"),
             "interim": str(tmp_path / "interim" / "clean.csv"),
             "validation_report": str(tmp_path / "reports" / "validation" / "validation_report.json"),
+            "eda_dir": str(tmp_path / "reports" / "eda"),
         },
         "schema": {
             "target": "Class",
@@ -38,6 +39,13 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "expected_fraud_rate": {"min": 0.01, "max": 0.5},
             "non_negative_columns": ["Time", "Amount"],
             "outlier_iqr_multiplier": 3.0,
+        },
+        "eda": {
+            "top_k_features": 6,
+            "time_bin_seconds": 3600,
+            "histogram_bins": 30,
+            "correlation_top_pairs": 5,
+            "figure_dpi": 60,
         },
     }
 
@@ -85,6 +93,11 @@ def make_transactions() -> Callable[..., pd.DataFrame]:
 @pytest.fixture
 def valid_df(make_transactions: Callable[..., pd.DataFrame]) -> pd.DataFrame:
     return make_transactions()
+
+
+@pytest.fixture
+def config_dict(tmp_path: Path) -> dict[str, Any]:
+    return make_config_dict(tmp_path)
 
 
 @pytest.fixture

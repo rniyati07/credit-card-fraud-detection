@@ -9,6 +9,7 @@ paths:
   raw: data/raw/creditcard.csv
   interim: data/interim/clean.csv
   validation_report: reports/validation/validation_report.json   # DOC-05 §23 DEV-01
+  eda_dir: reports/eda                                            # descriptive only; not a DVC stage
 
 schema:
   target: Class
@@ -28,3 +29,10 @@ validation:
     max: 0.01
   non_negative_columns: [Time, Amount]   # negative values are a hard fail (DOC-02 §3)
   outlier_iqr_multiplier: 3.0            # outliers are reported only, never removed
+
+eda:
+  top_k_features: 6          # most class-separating V-features shown in the KDE grid (DOC-02 §4 item 8)
+  time_bin_seconds: 3600     # bin width for fraud rate over elapsed time (descriptive; no hour-of-day features)
+  histogram_bins: 60
+  correlation_top_pairs: 10  # strongest feature-feature pairs listed in the report
+  figure_dpi: 110

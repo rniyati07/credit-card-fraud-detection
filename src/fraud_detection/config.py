@@ -41,6 +41,7 @@ class PathsConfig:
     raw: Path
     interim: Path
     validation_report: Path
+    eda_dir: Path
 
 
 @dataclass(frozen=True)
@@ -66,6 +67,17 @@ class ValidationConfig:
 
 
 @dataclass(frozen=True)
+class EdaConfig:
+    """Presentation settings for the descriptive EDA (DOC-02 §4)."""
+
+    top_k_features: int
+    time_bin_seconds: int
+    histogram_bins: int
+    correlation_top_pairs: int
+    figure_dpi: int
+
+
+@dataclass(frozen=True)
 class Config:
     """Validated project configuration."""
 
@@ -73,6 +85,7 @@ class Config:
     paths: PathsConfig
     schema: SchemaConfig
     validation: ValidationConfig
+    eda: EdaConfig
 
 
 def _section(raw: Mapping[str, Any], key: str) -> Mapping[str, Any]:
@@ -181,6 +194,27 @@ def _parse_validation(section: Mapping[str, Any], schema: SchemaConfig) -> Valid
     return validation
 
 
+def _parse_eda(section: Mapping[str, Any], schema: SchemaConfig) -> EdaConfig:
+    eda = EdaConfig(
+        **{
+            key: _int(_get(section, key, "eda"), f"eda.{key}")
+            for key in (
+                "top_k_features",
+                "time_bin_seconds",
+                "histogram_bins",
+                "correlation_top_pairs",
+                "figure_dpi",
+            )
+        }
+    )
+    for key, value in vars(eda).items():
+        if value < 1:
+            raise ConfigError(f"eda.{key} must be >= 1")
+    if eda.top_k_features > len(schema.features):
+        raise ConfigError("eda.top_k_features cannot exceed the number of features")
+    return eda
+
+
 def parse_config(raw: Mapping[str, Any]) -> Config:
     """Build a validated :class:`Config` from an already-parsed YAML mapping.
 
@@ -200,9 +234,11 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
             raw=Path(_get(paths, "raw", "paths")),
             interim=Path(_get(paths, "interim", "paths")),
             validation_report=Path(_get(paths, "validation_report", "paths")),
+            eda_dir=Path(_get(paths, "eda_dir", "paths")),
         ),
         schema=schema,
         validation=_parse_validation(_section(raw, "validation"), schema),
+        eda=_parse_eda(_section(raw, "eda"), schema),
     )
 
 
