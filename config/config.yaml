@@ -1,5 +1,5 @@
 # Single source of run-time parameters (DOC-03 §5, DOC-05 §7).
-# Sections are added milestone by milestone (currently M1-M6).
+# Sections are added milestone by milestone (currently M1-M7).
 
 project:
   name: credit-card-fraud-detection
@@ -20,6 +20,8 @@ paths:
   models_dir: models                                              # M6 frozen model.joblib + train_metadata.json
   reports_dir: reports                                            # M6 model_comparison.csv, threshold_analysis_<model>.csv, model_selection.md
   figures_dir: reports/figures                                    # M6 P/R-vs-threshold plots, validation confusion matrices
+  test_metrics: reports/test_metrics.json                         # M7 evaluate (test set, evaluated once)
+  temporal_dir: reports/temporal                                  # M7 evaluate_temporal outputs
 
 schema:
   target: Class
@@ -100,6 +102,10 @@ threshold:                   # chosen on validation only (DOC-02 §13)
 
 selection:                   # DOC-02 §12 framework
   pr_auc_tie_tolerance: 0.01 # provisional
+
+evaluation:                  # M7 final evaluation of the frozen model (DOC-02 §14, §21)
+  bootstrap: {enabled: true, n: 1000, confidence: 0.95}   # seeded CIs for PR-AUC / Recall (DOC-02 §21.5; DOC-05 §23 DEC-04)
+  inconclusive_fraud_cases: 2   # recall changes of at most this many fraud cases are treated as inconclusive (§21.6)
 
 mlflow:                      # local store; DOC-03 §5 allows SQLite (MLflow 3.x refuses the file store)
   tracking_uri: sqlite:///mlflow.db

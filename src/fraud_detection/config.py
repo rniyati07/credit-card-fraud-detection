@@ -62,6 +62,8 @@ class PathsConfig:
     models_dir: Path
     reports_dir: Path
     figures_dir: Path
+    test_metrics: Path
+    temporal_dir: Path
 
 
 @dataclass(frozen=True)
@@ -171,6 +173,16 @@ class SelectionConfig:
 
 
 @dataclass(frozen=True)
+class EvaluationConfig:
+    """Final evaluation settings (DOC-02 §14, §21.5-21.6)."""
+
+    bootstrap_enabled: bool
+    bootstrap_n: int
+    bootstrap_confidence: float
+    inconclusive_fraud_cases: int
+
+
+@dataclass(frozen=True)
 class MlflowConfig:
     """Local MLflow tracking (DOC-03 §6)."""
 
@@ -195,6 +207,7 @@ class Config:
     tuning: TuningConfig
     threshold: ThresholdConfig
     selection: SelectionConfig
+    evaluation: EvaluationConfig
     mlflow: MlflowConfig
 
 
@@ -515,6 +528,32 @@ def _parse_selection(section: Mapping[str, Any]) -> SelectionConfig:
     return selection
 
 
+def _parse_evaluation(section: Mapping[str, Any]) -> EvaluationConfig:
+    bootstrap = _get(section, "bootstrap", "evaluation")
+    if not isinstance(bootstrap, Mapping):
+        raise ConfigError("Config key 'evaluation.bootstrap' must be a mapping")
+    enabled = _get(bootstrap, "enabled", "evaluation.bootstrap")
+    if not isinstance(enabled, bool):
+        raise ConfigError("Config key 'evaluation.bootstrap.enabled' must be a boolean")
+    evaluation = EvaluationConfig(
+        bootstrap_enabled=enabled,
+        bootstrap_n=_int(_get(bootstrap, "n", "evaluation.bootstrap"), "evaluation.bootstrap.n"),
+        bootstrap_confidence=_float(
+            _get(bootstrap, "confidence", "evaluation.bootstrap"), "evaluation.bootstrap.confidence"
+        ),
+        inconclusive_fraud_cases=_int(
+            _get(section, "inconclusive_fraud_cases", "evaluation"), "evaluation.inconclusive_fraud_cases"
+        ),
+    )
+    if evaluation.bootstrap_n < 100:
+        raise ConfigError("evaluation.bootstrap.n must be >= 100")
+    if not 0.5 < evaluation.bootstrap_confidence < 1.0:
+        raise ConfigError("evaluation.bootstrap.confidence must be in (0.5, 1)")
+    if evaluation.inconclusive_fraud_cases < 0:
+        raise ConfigError("evaluation.inconclusive_fraud_cases must be >= 0")
+    return evaluation
+
+
 def _parse_mlflow(section: Mapping[str, Any]) -> MlflowConfig:
     mlflow = MlflowConfig(
         tracking_uri=str(_get(section, "tracking_uri", "mlflow")),
@@ -557,6 +596,8 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
             models_dir=Path(_get(paths, "models_dir", "paths")),
             reports_dir=Path(_get(paths, "reports_dir", "paths")),
             figures_dir=Path(_get(paths, "figures_dir", "paths")),
+            test_metrics=Path(_get(paths, "test_metrics", "paths")),
+            temporal_dir=Path(_get(paths, "temporal_dir", "paths")),
         ),
         schema=schema,
         validation=_parse_validation(_section(raw, "validation"), schema),
@@ -569,6 +610,7 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
         tuning=_parse_tuning(_section(raw, "tuning"), models),
         threshold=_parse_threshold(_section(raw, "threshold")),
         selection=_parse_selection(_section(raw, "selection")),
+        evaluation=_parse_evaluation(_section(raw, "evaluation")),
         mlflow=_parse_mlflow(_section(raw, "mlflow")),
     )
 

@@ -1,4 +1,4 @@
-"""Evaluation figures: precision/recall vs. threshold and confusion matrices (DOC-02 §13).
+"""Evaluation figures: P/R vs. threshold, PR and ROC curves, confusion matrices (DOC-02 §13-§14).
 
 Rendered with the non-interactive Agg backend and without software metadata, so the
 PNG bytes are deterministic for the same inputs.
@@ -8,13 +8,16 @@ from __future__ import annotations
 
 import logging
 from pathlib import Path
+from typing import Any
 
 import matplotlib
 
 matplotlib.use("Agg")
 
 import matplotlib.pyplot as plt  # noqa: E402
+import numpy as np  # noqa: E402
 import pandas as pd  # noqa: E402
+from sklearn.metrics import precision_recall_curve, roc_curve  # noqa: E402
 
 from fraud_detection.evaluation.threshold import ThresholdChoice  # noqa: E402
 
@@ -50,6 +53,45 @@ def plot_threshold_curve(table: pd.DataFrame, choice: ThresholdChoice, model: st
     ax.set_ylabel("Validation metric")
     ax.set_title(f"{model}: precision / recall vs threshold ({choice.objective})")
     ax.legend(loc="lower left", fontsize=8)
+    return _save(fig, path)
+
+
+def plot_pr_curve(
+    y_true: Any, y_proba: Any, operating_point: tuple[float, float], prevalence: float,
+    pr_auc: float, title: str, path: Path,
+) -> Path:
+    """Precision-recall curve with the frozen operating point and the no-skill baseline."""
+    precision, recall, _ = precision_recall_curve(np.asarray(y_true), np.asarray(y_proba, dtype=float))
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.step(recall, precision, where="post", color="#4C72B0", label=f"PR curve (AP = {pr_auc:.4f})")
+    ax.axhline(prevalence, color="#8C8C8C", linestyle=":", label=f"No skill (prevalence = {prevalence:.5f})")
+    ax.plot(*operating_point, "o", color="#C44E52", markersize=8,
+            label=f"Frozen threshold (R = {operating_point[0]:.3f}, P = {operating_point[1]:.3f})")
+    ax.set_xlim(0, 1.01)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel("Recall")
+    ax.set_ylabel("Precision")
+    ax.set_title(title)
+    ax.legend(loc="lower left", fontsize=8)
+    return _save(fig, path)
+
+
+def plot_roc_curve(
+    y_true: Any, y_proba: Any, operating_point: tuple[float, float], roc_auc: float, title: str, path: Path,
+) -> Path:
+    """ROC curve with the frozen operating point (FPR, TPR)."""
+    fpr, tpr, _ = roc_curve(np.asarray(y_true), np.asarray(y_proba, dtype=float))
+    fig, ax = plt.subplots(figsize=(6, 5))
+    ax.plot(fpr, tpr, color="#4C72B0", label=f"ROC curve (AUC = {roc_auc:.4f})")
+    ax.plot([0, 1], [0, 1], color="#8C8C8C", linestyle=":", label="No skill")
+    ax.plot(*operating_point, "o", color="#C44E52", markersize=8,
+            label=f"Frozen threshold (FPR = {operating_point[0]:.5f}, TPR = {operating_point[1]:.3f})")
+    ax.set_xlim(-0.01, 1.01)
+    ax.set_ylim(0, 1.02)
+    ax.set_xlabel("False positive rate")
+    ax.set_ylabel("True positive rate (recall)")
+    ax.set_title(title)
+    ax.legend(loc="lower right", fontsize=8)
     return _save(fig, path)
 
 

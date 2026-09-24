@@ -41,6 +41,8 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "models_dir": str(tmp_path / "models"),
             "reports_dir": str(tmp_path / "reports"),
             "figures_dir": str(tmp_path / "reports" / "figures"),
+            "test_metrics": str(tmp_path / "reports" / "test_metrics.json"),
+            "temporal_dir": str(tmp_path / "reports" / "temporal"),
         },
         "schema": {
             "target": "Class",
@@ -106,6 +108,10 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "reference_threshold": 0.5,
         },
         "selection": {"pr_auc_tie_tolerance": 0.01},
+        "evaluation": {
+            "bootstrap": {"enabled": True, "n": 200, "confidence": 0.95},
+            "inconclusive_fraud_cases": 2,
+        },
         "mlflow": {
             "tracking_uri": f"sqlite:///{(tmp_path / 'mlflow.db').as_posix()}",
             "experiment_name": "test-experiment",

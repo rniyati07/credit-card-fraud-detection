@@ -1,0 +1,109 @@
+{
+  "stage": "evaluate",
+  "scope": "Primary test evaluation of the frozen model and threshold (DOC-02 \u00a714). Evaluated once; reported as-is; never used to retrain, retune or reselect.",
+  "model_name": "xgboost",
+  "model_version": "1.0.0+b8aee2c",
+  "threshold": 0.9111537337303162,
+  "threshold_objective": "recall>=r_min_max_precision",
+  "r_min": 0.8,
+  "r_min_status": "confirmed",
+  "model_sha256": "a5b4b31f71aa3f04f126d1416ff1653ab8938e619743a7d4e4cd77d8dee71332",
+  "mlflow_run_id": "92b2211618344a8789f60d001605d4dc",
+  "reference_threshold": 0.5,
+  "dataset": {
+    "path": "data/processed/test.csv",
+    "sha256": "3b132f700b68ce9da2d77a4d0fd3e3822ce804a88ae58bea4b422be9f10ba81b",
+    "rows": 36175,
+    "fraud_count": 63,
+    "prevalence": 0.001741534208707671
+  },
+  "partitions_read": [
+    "test"
+  ],
+  "n_rows": 36175,
+  "n_fraud": 63,
+  "prevalence": 0.001741534208707671,
+  "pr_auc": 0.8834094837761949,
+  "roc_auc": 0.9778761489827064,
+  "pr_auc_lift": 507.25933453339445,
+  "at_threshold": {
+    "threshold": 0.9111537337303162,
+    "precision": 0.9811320754716981,
+    "recall": 0.8253968253968254,
+    "f1": 0.896551724137931,
+    "f2": 0.8524590163934426,
+    "tp": 52,
+    "fp": 1,
+    "tn": 36111,
+    "fn": 11,
+    "confusion_matrix": [
+      [
+        36111,
+        1
+      ],
+      [
+        11,
+        52
+      ]
+    ]
+  },
+  "rates": {
+    "fp_rate": 2.769162605228179e-05,
+    "fn_rate": 0.1746031746031746
+  },
+  "r_min_check": {
+    "r_min": 0.8,
+    "recall": 0.8253968253968254,
+    "meets_r_min": true,
+    "frauds_detected": 52,
+    "frauds_missed": 11,
+    "frauds_total": 63,
+    "frauds_required_for_r_min": 51,
+    "margin_in_fraud_cases": 1
+  },
+  "at_reference_threshold": {
+    "threshold": 0.5,
+    "precision": 0.9322033898305084,
+    "recall": 0.873015873015873,
+    "f1": 0.9016393442622951,
+    "f2": 0.8842443729903537,
+    "tp": 55,
+    "fp": 4,
+    "tn": 36108,
+    "fn": 8,
+    "confusion_matrix": [
+      [
+        36108,
+        4
+      ],
+      [
+        8,
+        55
+      ]
+    ]
+  },
+  "bootstrap": {
+    "n": 1000,
+    "confidence": 0.95,
+    "seed": 42,
+    "skipped_no_fraud": 0,
+    "pr_auc": {
+      "low": 0.7976122479959347,
+      "high": 0.9546500103160369
+    },
+    "recall": {
+      "low": 0.7272360703812317,
+      "high": 0.9152542372881356
+    },
+    "precision": {
+      "low": 0.9354663394109397,
+      "high": 1.0
+    }
+  },
+  "evaluation_lineage": {
+    "git_commit": "b8aee2c1650fada0e77808da68ab4d2eb4045a9f",
+    "git_dirty": "true",
+    "git_dirty_excludes": "reports,models",
+    "config_hash": "d8e45e87c4d8f9d7fe6cc3e863b86e15d27e78cbba067badf1a918a035929cd0"
+  }
+}

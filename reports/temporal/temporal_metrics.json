@@ -1,0 +1,163 @@
+{
+  "stage": "evaluate_temporal",
+  "scope": "Secondary temporal robustness evaluation of the frozen model and threshold (DOC-02 \u00a721). Evaluated once; never used to retrain, retune, reselect or change the threshold.",
+  "model_name": "xgboost",
+  "model_version": "1.0.0+b8aee2c",
+  "threshold": 0.9111537337303162,
+  "threshold_objective": "recall>=r_min_max_precision",
+  "r_min": 0.8,
+  "r_min_status": "confirmed",
+  "model_sha256": "a5b4b31f71aa3f04f126d1416ff1653ab8938e619743a7d4e4cd77d8dee71332",
+  "mlflow_run_id": "92b2211618344a8789f60d001605d4dc",
+  "reference_threshold": 0.5,
+  "dataset": {
+    "path": "data/processed/temporal_holdout.csv",
+    "sha256": "81187a29700d09f632f10b9c797fddf1d5181355da9b366385aa06a4c79df64f",
+    "rows": 42561,
+    "fraud_count": 52,
+    "prevalence": 0.0012217758041399402
+  },
+  "partitions_read": [
+    "temporal_holdout"
+  ],
+  "n_rows": 42561,
+  "n_fraud": 52,
+  "prevalence": 0.0012217758041399402,
+  "pr_auc": 0.7669419300451655,
+  "roc_auc": 0.9504195491633445,
+  "pr_auc_lift": 627.7272208586979,
+  "at_threshold": {
+    "threshold": 0.9111537337303162,
+    "precision": 0.9512195121951219,
+    "recall": 0.75,
+    "f1": 0.8387096774193549,
+    "f2": 0.7831325301204819,
+    "tp": 39,
+    "fp": 2,
+    "tn": 42507,
+    "fn": 13,
+    "confusion_matrix": [
+      [
+        42507,
+        2
+      ],
+      [
+        13,
+        39
+      ]
+    ]
+  },
+  "rates": {
+    "fp_rate": 4.7048860241360656e-05,
+    "fn_rate": 0.25
+  },
+  "r_min_check": {
+    "r_min": 0.8,
+    "recall": 0.75,
+    "meets_r_min": false,
+    "frauds_detected": 39,
+    "frauds_missed": 13,
+    "frauds_total": 52,
+    "frauds_required_for_r_min": 42,
+    "margin_in_fraud_cases": -3
+  },
+  "at_reference_threshold": {
+    "threshold": 0.5,
+    "precision": 0.7959183673469388,
+    "recall": 0.75,
+    "f1": 0.7722772277227723,
+    "f2": 0.7587548638132295,
+    "tp": 39,
+    "fp": 10,
+    "tn": 42499,
+    "fn": 13,
+    "confusion_matrix": [
+      [
+        42499,
+        10
+      ],
+      [
+        13,
+        39
+      ]
+    ]
+  },
+  "bootstrap": {
+    "n": 1000,
+    "confidence": 0.95,
+    "seed": 42,
+    "skipped_no_fraud": 0,
+    "pr_auc": {
+      "low": 0.6586697966632247,
+      "high": 0.8722956580473042
+    },
+    "recall": {
+      "low": 0.6307608695652174,
+      "high": 0.8604651162790697
+    },
+    "precision": {
+      "low": 0.875,
+      "high": 1.0
+    }
+  },
+  "delta_vs_random_test": {
+    "pr_auc": -0.11646755373102935,
+    "roc_auc": -0.027456599819361882,
+    "precision": -0.02991256327657621,
+    "recall": -0.07539682539682535,
+    "f1": -0.05784204671857618,
+    "f2": -0.06932648627296067,
+    "fp_rate": 1.9357234189078867e-05,
+    "fn_rate": 0.0753968253968254,
+    "pr_auc_lift": 120.46788632530348
+  },
+  "prevalence_context": {
+    "holdout_prevalence": 0.0012217758041399402,
+    "test_prevalence": 0.001741534208707671,
+    "holdout_minus_test": -0.0005197584045677308,
+    "development_pool_prevalence": 0.001745692782949433,
+    "holdout_minus_pool": -0.0005239169788094928,
+    "holdout_to_pool_ratio": 0.6998801943121347,
+    "holdout_low_confidence": false,
+    "min_fraud_warning": 20
+  },
+  "interpretation": {
+    "verdicts": {
+      "pr_auc": {
+        "abs_delta": -0.11646755373102935,
+        "verdict": "decrease within sampling noise (inconclusive)",
+        "reasons": [
+          "bootstrap CIs overlap"
+        ]
+      },
+      "recall": {
+        "abs_delta": -0.07539682539682535,
+        "verdict": "decrease within sampling noise (inconclusive)",
+        "reasons": [
+          "bootstrap CIs overlap"
+        ]
+      },
+      "precision": {
+        "abs_delta": -0.02991256327657621,
+        "verdict": "decrease within sampling noise (inconclusive)",
+        "reasons": [
+          "bootstrap CIs overlap"
+        ]
+      }
+    },
+    "recall_delta_in_holdout_fraud_cases": -3.9206349206349183,
+    "metrics_decreased": [
+      "pr_auc",
+      "recall",
+      "precision"
+    ],
+    "metrics_with_shift_evidence": [],
+    "overall": "lower point estimates on the holdout for pr_auc, recall, precision, but every decrease is within sampling noise (inconclusive at this sample size): no evidence beyond noise of possible short-horizon temporal/distribution shift"
+  },
+  "evaluation_lineage": {
+    "git_commit": "b8aee2c1650fada0e77808da68ab4d2eb4045a9f",
+    "git_dirty": "true",
+    "git_dirty_excludes": "reports,models",
+    "config_hash": "d8e45e87c4d8f9d7fe6cc3e863b86e15d27e78cbba067badf1a918a035929cd0"
+  }
+}

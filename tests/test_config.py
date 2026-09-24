@@ -182,3 +182,27 @@ def test_repository_config_m6_values() -> None:
     assert t.r_min_confirmed is True  # confirmed after M6 review (DOC-05 §23 DEC-01)
     assert config.selection.pr_auc_tie_tolerance == 0.01
     assert config.project.model_version == "1.0.0"
+
+
+@pytest.mark.parametrize(
+    ("mutate", "message"),
+    [
+        (lambda c: c["evaluation"]["bootstrap"].update(enabled="yes"), "enabled' must be a boolean"),
+        (lambda c: c["evaluation"]["bootstrap"].update(n=10), "n must be >= 100"),
+        (lambda c: c["evaluation"]["bootstrap"].update(confidence=1.0), "confidence"),
+        (lambda c: c["evaluation"].update(inconclusive_fraud_cases=-1), "inconclusive_fraud_cases"),
+        (lambda c: c.pop("evaluation"), "evaluation"),
+    ],
+)
+def test_invalid_m7_settings_raise(config_dict: dict[str, Any], mutate, message) -> None:
+    mutate(config_dict)
+    with pytest.raises(ConfigError, match=message):
+        parse_config(config_dict)
+
+
+def test_repository_config_m7_values() -> None:
+    config = load_config(Path(__file__).parents[1] / "config" / "config.yaml")
+    e = config.evaluation
+    assert (e.bootstrap_enabled, e.bootstrap_n, e.bootstrap_confidence, e.inconclusive_fraud_cases) == (True, 1000, 0.95, 2)
+    assert config.paths.test_metrics == Path("reports/test_metrics.json")
+    assert config.paths.temporal_dir == Path("reports/temporal")
