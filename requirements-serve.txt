@@ -1,0 +1,31 @@
+# Serving-only runtime dependencies (DOC-04 §8; DOC-05 M10, §14).
+# Direct: fastapi, uvicorn, pydantic, scikit-learn, xgboost, numpy, pandas, joblib.
+# The rest is their complete Linux runtime closure. Every pin is identical to requirements.txt
+# (DOC-03 MAC-09), and the image installs with `pip install --no-deps`, so nothing unpinned is
+# pulled in. Deliberately omitted: nvidia-nccl-cu13 (xgboost's Linux multi-GPU NCCL library;
+# unused for CPU inference). No training, tuning, tracking, DVC, MLflow, plotting or test packages.
+# imbalanced-learn is not needed: the frozen model is a plain sklearn Pipeline, not the SMOTE variant.
+annotated-doc==0.0.5
+annotated-types==0.8.0
+anyio==4.15.1
+click==8.5.0
+cloudpickle==3.1.2
+fastapi==0.141.1
+h11==0.16.0
+idna==3.20
+joblib==1.6.0
+narwhals==2.26.0
+numpy==2.5.3
+pandas==3.0.6
+pydantic==2.13.5
+pydantic_core==2.46.5
+python-dateutil==2.9.0.post0
+scikit-learn==1.9.1
+scipy==1.18.1
+six==1.17.0
+starlette==1.7.0
+threadpoolctl==3.7.0
+typing-inspection==0.4.4
+typing_extensions==4.16.0
+uvicorn==0.53.0
+xgboost==3.4.1

@@ -1,0 +1,19 @@
+# Build context for the serving image (DOC-04 §8; DOC-05 §14). Allow-list: exclude everything,
+# then re-include only what the Dockerfile copies. This keeps out, among others:
+#   data/, mlruns/, mlflow.db, reports/, notebooks/, tests/, docs/, config/, .dvc/, .git/,
+#   venv/ and .venv/, models/candidates/, models/train_metadata.json, dvc.yaml, dvc.lock,
+#   requirements.txt, and all training code: src/fraud_detection/{config.py, data, features,
+#   models, evaluation, tracking, pipeline, eda}.
+*
+
+!requirements-serve.txt
+!app/
+!src/fraud_detection/__init__.py
+!src/fraud_detection/inference/
+!models/model.joblib
+!models/model_config.json
+
+# Never ship caches, even inside allowed directories.
+**/__pycache__
+**/*.py[cod]
+**/.pytest_cache
