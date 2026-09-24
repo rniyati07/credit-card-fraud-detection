@@ -1,0 +1,424 @@
+{
+  "timestamp": "2026-09-24T04:37:33+00:00",
+  "overall_status": "PASS",
+  "schema_validation_status": "PASS",
+  "dataset": {
+    "path": "data/raw/creditcard.csv",
+    "sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89"
+  },
+  "total_rows": 284807,
+  "total_columns": 31,
+  "fraud_count": 492,
+  "fraud_rate": 0.001727485630620034,
+  "class_counts": {
+    "0": 284315,
+    "1": 492
+  },
+  "missing_values": {
+    "Time": 0,
+    "V1": 0,
+    "V2": 0,
+    "V3": 0,
+    "V4": 0,
+    "V5": 0,
+    "V6": 0,
+    "V7": 0,
+    "V8": 0,
+    "V9": 0,
+    "V10": 0,
+    "V11": 0,
+    "V12": 0,
+    "V13": 0,
+    "V14": 0,
+    "V15": 0,
+    "V16": 0,
+    "V17": 0,
+    "V18": 0,
+    "V19": 0,
+    "V20": 0,
+    "V21": 0,
+    "V22": 0,
+    "V23": 0,
+    "V24": 0,
+    "V25": 0,
+    "V26": 0,
+    "V27": 0,
+    "V28": 0,
+    "Amount": 0,
+    "Class": 0
+  },
+  "missing_values_total": 0,
+  "infinite_values_total": 0,
+  "duplicate_rows": 1081,
+  "duplicate_rows_by_class": {
+    "0": 1062,
+    "1": 19
+  },
+  "clean_dataset": {
+    "total_rows": 283726,
+    "total_columns": 31,
+    "class_counts": {
+      "0": 283253,
+      "1": 473
+    },
+    "fraud_count": 473,
+    "fraud_rate": 0.001667101358352777,
+    "duplicates_removed": 1081
+  },
+  "errors": [],
+  "warnings": [
+    "1081 exact duplicate rows will be removed (first occurrence kept)"
+  ],
+  "checks": [
+    {
+      "name": "schema",
+      "status": "PASS",
+      "message": "All required columns present",
+      "details": {
+        "missing_columns": [],
+        "unexpected_columns": [],
+        "column_order_matches": true
+      }
+    },
+    {
+      "name": "row_count",
+      "status": "PASS",
+      "message": "Dataset has 284807 rows",
+      "details": {
+        "total_rows": 284807,
+        "min_rows": 1
+      }
+    },
+    {
+      "name": "dtypes",
+      "status": "PASS",
+      "message": "All columns have valid data types",
+      "details": {
+        "column_dtypes": {
+          "Time": "float64",
+          "V1": "float64",
+          "V2": "float64",
+          "V3": "float64",
+          "V4": "float64",
+          "V5": "float64",
+          "V6": "float64",
+          "V7": "float64",
+          "V8": "float64",
+          "V9": "float64",
+          "V10": "float64",
+          "V11": "float64",
+          "V12": "float64",
+          "V13": "float64",
+          "V14": "float64",
+          "V15": "float64",
+          "V16": "float64",
+          "V17": "float64",
+          "V18": "float64",
+          "V19": "float64",
+          "V20": "float64",
+          "V21": "float64",
+          "V22": "float64",
+          "V23": "float64",
+          "V24": "float64",
+          "V25": "float64",
+          "V26": "float64",
+          "V27": "float64",
+          "V28": "float64",
+          "Amount": "float64",
+          "Class": "int64"
+        },
+        "non_numeric_columns": [],
+        "target_integer_castable": true
+      }
+    },
+    {
+      "name": "missing_values",
+      "status": "PASS",
+      "message": "No missing values",
+      "details": {
+        "per_column": {
+          "Time": 0,
+          "V1": 0,
+          "V2": 0,
+          "V3": 0,
+          "V4": 0,
+          "V5": 0,
+          "V6": 0,
+          "V7": 0,
+          "V8": 0,
+          "V9": 0,
+          "V10": 0,
+          "V11": 0,
+          "V12": 0,
+          "V13": 0,
+          "V14": 0,
+          "V15": 0,
+          "V16": 0,
+          "V17": 0,
+          "V18": 0,
+          "V19": 0,
+          "V20": 0,
+          "V21": 0,
+          "V22": 0,
+          "V23": 0,
+          "V24": 0,
+          "V25": 0,
+          "V26": 0,
+          "V27": 0,
+          "V28": 0,
+          "Amount": 0,
+          "Class": 0
+        },
+        "total": 0
+      }
+    },
+    {
+      "name": "infinite_values",
+      "status": "PASS",
+      "message": "No infinite values",
+      "details": {
+        "per_column": {
+          "Time": 0,
+          "V1": 0,
+          "V2": 0,
+          "V3": 0,
+          "V4": 0,
+          "V5": 0,
+          "V6": 0,
+          "V7": 0,
+          "V8": 0,
+          "V9": 0,
+          "V10": 0,
+          "V11": 0,
+          "V12": 0,
+          "V13": 0,
+          "V14": 0,
+          "V15": 0,
+          "V16": 0,
+          "V17": 0,
+          "V18": 0,
+          "V19": 0,
+          "V20": 0,
+          "V21": 0,
+          "V22": 0,
+          "V23": 0,
+          "V24": 0,
+          "V25": 0,
+          "V26": 0,
+          "V27": 0,
+          "V28": 0,
+          "Amount": 0
+        },
+        "total": 0
+      }
+    },
+    {
+      "name": "target_values",
+      "status": "PASS",
+      "message": "Target values are {0, 1}",
+      "details": {
+        "observed_values": [
+          0,
+          1
+        ],
+        "invalid_values": []
+      }
+    },
+    {
+      "name": "class_distribution",
+      "status": "PASS",
+      "message": "492 frauds / 284807 rows (0.1727%)",
+      "details": {
+        "class_counts": {
+          "0": 284315,
+          "1": 492
+        },
+        "fraud_count": 492,
+        "fraud_rate": 0.001727485630620034,
+        "expected_fraud_rate_range": [
+          0.0001,
+          0.01
+        ]
+      }
+    },
+    {
+      "name": "negative_values",
+      "status": "PASS",
+      "message": "No negative values in ['Time', 'Amount']",
+      "details": {
+        "per_column": {
+          "Time": 0,
+          "Amount": 0
+        }
+      }
+    },
+    {
+      "name": "outliers",
+      "status": "PASS",
+      "message": "118639 outlier values reported (IQR x 3.0); rows are not removed",
+      "details": {
+        "iqr_multiplier": 3.0,
+        "per_column": {
+          "V1": {
+            "lower_bound": -7.628418619194884,
+            "upper_bound": 8.023686928682427,
+            "count": 1994
+          },
+          "V2": {
+            "lower_bound": -4.805371267579948,
+            "upper_bound": 5.010545225355125,
+            "count": 4453
+          },
+          "V3": {
+            "lower_bound": -6.643045980017227,
+            "upper_bound": 6.7798766843276415,
+            "count": 762
+          },
+          "V4": {
+            "lower_bound": -5.624584333730855,
+            "upper_bound": 5.51928550686817,
+            "count": 479
+          },
+          "V5": {
+            "lower_bound": -4.602167602756209,
+            "upper_bound": 4.522496971603744,
+            "count": 2321
+          },
+          "V6": {
+            "lower_bound": -4.268877122910271,
+            "upper_bound": 3.899146410805887,
+            "count": 5389
+          },
+          "V7": {
+            "lower_bound": -3.9276117347788864,
+            "upper_bound": 3.943971928619962,
+            "count": 3051
+          },
+          "V8": {
+            "lower_bound": -1.816556561928213,
+            "upper_bound": 1.9352726798121955,
+            "count": 11285
+          },
+          "V9": {
+            "lower_bound": -4.363807371913172,
+            "upper_bound": 4.317848831928849,
+            "count": 1077
+          },
+          "V10": {
+            "lower_bound": -3.5034732413918155,
+            "upper_bound": 3.421970960037999,
+            "count": 3208
+          },
+          "V11": {
+            "lower_bound": -5.268757004016728,
+            "upper_bound": 5.2458562158253565,
+            "count": 154
+          },
+          "V12": {
+            "lower_bound": -3.4770000406000623,
+            "upper_bound": 3.689666588105785,
+            "count": 1305
+          },
+          "V13": {
+            "lower_bound": -4.581672074778196,
+            "upper_bound": 4.595637735103602,
+            "count": 2
+          },
+          "V14": {
+            "lower_bound": -3.181745597474421,
+            "upper_bound": 3.2493214342375762,
+            "count": 2405
+          },
+          "V15": {
+            "lower_bound": -4.277999535581298,
+            "upper_bound": 4.343936062740999,
+            "count": 18
+          },
+          "V16": {
+            "lower_bound": -3.4420360042776244,
+            "upper_bound": 3.49729555004007,
+            "count": 588
+          },
+          "V17": {
+            "lower_bound": -3.1340182027793455,
+            "upper_bound": 3.0499448717226816,
+            "count": 1449
+          },
+          "V18": {
+            "lower_bound": -3.4978194353218117,
+            "upper_bound": 3.4997763835439866,
+            "count": 283
+          },
+          "V19": {
+            "lower_bound": -3.2020437422658268,
+            "upper_bound": 3.204694179284058,
+            "count": 628
+          },
+          "V20": {
+            "lower_bound": -1.2460079816798717,
+            "upper_bound": 1.167327457999919,
+            "count": 13385
+          },
+          "V21": {
+            "lower_bound": -1.4727113972497947,
+            "upper_bound": 1.4306936538498531,
+            "count": 6934
+          },
+          "V22": {
+            "lower_bound": -3.7550623966446057,
+            "upper_bound": 3.7412656593179308,
+            "count": 193
+          },
+          "V23": {
+            "lower_bound": -1.090311571627688,
+            "upper_bound": 1.0761072904688536,
+            "count": 8135
+          },
+          "V24": {
+            "lower_bound": -2.7369243461425525,
+            "upper_bound": 2.82186480990124,
+            "count": 137
+          },
+          "V25": {
+            "lower_bound": -2.3207269048632377,
+            "upper_bound": 2.354297413665354,
+            "count": 452
+          },
+          "V26": {
+            "lower_bound": -2.0307922246671444,
+            "upper_bound": 1.9447604725011804,
+            "count": 514
+          },
+          "V27": {
+            "lower_bound": -0.5564934762752975,
+            "upper_bound": 0.5766990666566352,
+            "count": 16524
+          },
+          "V28": {
+            "lower_bound": -0.446679036341384,
+            "upper_bound": 0.47199919808222324,
+            "count": 12573
+          },
+          "Amount": {
+            "lower_bound": -209.095,
+            "upper_bound": 291.86,
+            "count": 18941
+          }
+        },
+        "total": 118639
+      }
+    },
+    {
+      "name": "duplicates",
+      "status": "WARN",
+      "message": "1081 exact duplicate rows will be removed (first occurrence kept)",
+      "details": {
+        "count": 1081,
+        "by_class": {
+          "0": 1062,
+          "1": 19
+        }
+      }
+    }
+  ]
+}

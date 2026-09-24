@@ -779,4 +779,8 @@ A feature being interesting is not a reason to add it. Proposed additions go to 
 
 **Optional [OPTIONAL]:** GitHub Actions CI; SMOTE+LR; bootstrap CIs; EDA notebook; ruff; Docker HEALTHCHECK.
 
-**Deviation register:** *(empty at baseline — record any implementation-time deviation here with ID, description, justification, affected document.)*
+**Deviation register:** *(record any implementation-time deviation here with ID, description, justification, affected document.)*
+
+| ID | Description | Justification | Affected documents |
+|---|---|---|---|
+| DEV-01 | Validation report written to `reports/validation/validation_report.json` instead of `reports/validation_report.json`; path set by `paths.validation_report` in `config/config.yaml`. | Requested in the M1 implementation brief; keeps validation outputs grouped like `reports/temporal/` and `reports/eda/`. Configurable, so the pipeline logic is unaffected. `dvc.yaml` (M8) must declare this path. | DOC-02 §1, §17; DOC-03 §4.2; DOC-05 §3, M1 |

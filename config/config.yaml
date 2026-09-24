@@ -1,0 +1,30 @@
+# Single source of run-time parameters (DOC-03 §5, DOC-05 §7).
+# Sections are added milestone by milestone; this file currently holds what M1 needs.
+
+project:
+  name: credit-card-fraud-detection
+  seed: 42
+
+paths:
+  raw: data/raw/creditcard.csv
+  interim: data/interim/clean.csv
+  validation_report: reports/validation/validation_report.json   # DOC-05 §23 DEV-01
+
+schema:
+  target: Class
+  positive_label: 1
+  ordering_column: Time
+  features: [V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14,
+             V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25, V26, V27, V28, Amount]
+  required_columns: [Time, V1, V2, V3, V4, V5, V6, V7, V8, V9, V10, V11, V12, V13, V14,
+                     V15, V16, V17, V18, V19, V20, V21, V22, V23, V24, V25, V26, V27, V28,
+                     Amount, Class]
+
+validation:
+  min_rows: 1
+  # Warn when the fraud rate leaves the expected order of magnitude (documented ~0.17%). Provisional.
+  expected_fraud_rate:
+    min: 0.0001
+    max: 0.01
+  non_negative_columns: [Time, Amount]   # negative values are a hard fail (DOC-02 §3)
+  outlier_iqr_multiplier: 3.0            # outliers are reported only, never removed
