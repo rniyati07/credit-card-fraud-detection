@@ -11,7 +11,13 @@ import pandas as pd
 import pytest
 import yaml
 
-from fraud_detection.config import SchemaConfig, ValidationConfig
+from fraud_detection.config import (
+    PreprocessingConfig,
+    SchemaConfig,
+    SplitConfig,
+    TemporalConfig,
+    ValidationConfig,
+)
 
 FEATURES = [f"V{i}" for i in range(1, 29)] + ["Amount"]
 REQUIRED_COLUMNS = ["Time", *FEATURES, "Class"]
@@ -26,6 +32,9 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "interim": str(tmp_path / "interim" / "clean.csv"),
             "validation_report": str(tmp_path / "reports" / "validation" / "validation_report.json"),
             "eda_dir": str(tmp_path / "reports" / "eda"),
+            "processed_dir": str(tmp_path / "processed"),
+            "split_summary": str(tmp_path / "reports" / "split_summary.json"),
+            "temporal_split_summary": str(tmp_path / "reports" / "temporal" / "temporal_split_summary.json"),
         },
         "schema": {
             "target": "Class",
@@ -47,6 +56,16 @@ def make_config_dict(tmp_path: Path) -> dict[str, Any]:
             "correlation_top_pairs": 5,
             "figure_dpi": 60,
         },
+        "split": {
+            "train": 0.70,
+            "val": 0.15,
+            "test": 0.15,
+            "stratify": True,
+            "prevalence_tolerance_pp": 0.02,
+            "row_id_column": "row_id",
+        },
+        "temporal": {"holdout_fraction": 0.15, "min_fraud_warning": 20},
+        "preprocessing": {"robust_scaled_features": ["Amount"]},
     }
 
 
@@ -70,6 +89,28 @@ def validation_config() -> ValidationConfig:
         non_negative_columns=("Time", "Amount"),
         outlier_iqr_multiplier=3.0,
     )
+
+
+@pytest.fixture
+def split_config() -> SplitConfig:
+    return SplitConfig(
+        train=0.70,
+        val=0.15,
+        test=0.15,
+        stratify=True,
+        prevalence_tolerance_pp=0.02,
+        row_id_column="row_id",
+    )
+
+
+@pytest.fixture
+def temporal_config() -> TemporalConfig:
+    return TemporalConfig(holdout_fraction=0.15, min_fraud_warning=20)
+
+
+@pytest.fixture
+def preprocessing_config() -> PreprocessingConfig:
+    return PreprocessingConfig(robust_scaled_features=("Amount",))
 
 
 @pytest.fixture

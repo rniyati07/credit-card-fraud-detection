@@ -1,5 +1,5 @@
 # Single source of run-time parameters (DOC-03 §5, DOC-05 §7).
-# Sections are added milestone by milestone; this file currently holds what M1 needs.
+# Sections are added milestone by milestone (currently M1-M3).
 
 project:
   name: credit-card-fraud-detection
@@ -10,6 +10,9 @@ paths:
   interim: data/interim/clean.csv
   validation_report: reports/validation/validation_report.json   # DOC-05 §23 DEV-01
   eda_dir: reports/eda                                            # descriptive only; not a DVC stage
+  processed_dir: data/processed                                   # train/val/test/temporal_holdout.csv
+  split_summary: reports/split_summary.json
+  temporal_split_summary: reports/temporal/temporal_split_summary.json
 
 schema:
   target: Class
@@ -36,3 +39,18 @@ eda:
   histogram_bins: 60
   correlation_top_pairs: 10  # strongest feature-feature pairs listed in the report
   figure_dpi: 110
+
+split:                       # primary protocol on the development pool (DOC-02 §6)
+  train: 0.70
+  val: 0.15
+  test: 0.15
+  stratify: true
+  prevalence_tolerance_pp: 0.02   # max |split prevalence - pool prevalence| in pp (DOC-01 SC-02). Provisional.
+  row_id_column: row_id           # stable row identity for overlap checks; never a feature (DOC-05 IMP-03)
+
+temporal:                    # secondary temporal robustness holdout (DOC-02 §21.3)
+  holdout_fraction: 0.15          # fixed before any modelling; never tuned after seeing results
+  min_fraud_warning: 20           # fewer holdout frauds -> low-confidence flag. Provisional.
+
+preprocessing:               # fitted on train only, inside the model Pipeline (DOC-02 §7, TD-04)
+  robust_scaled_features: [Amount]   # median impute -> RobustScaler; all other features: median impute -> StandardScaler

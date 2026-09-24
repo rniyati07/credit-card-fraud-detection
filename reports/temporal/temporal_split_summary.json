@@ -1,0 +1,32 @@
+{
+  "ordering_column": "Time",
+  "sort": "ascending, stable (mergesort); ties keep file order",
+  "holdout_fraction": 0.15,
+  "stratified": false,
+  "total_rows": 283726,
+  "nominal_cut_index": 241167,
+  "cut_index": 241165,
+  "boundary_time": 151320.0,
+  "boundary_tie_rows_moved_to_holdout": 2,
+  "development_pool": {
+    "rows": 241165,
+    "fraud_count": 421,
+    "legitimate_count": 240744,
+    "prevalence": 0.001745692782949433,
+    "time_min": 0.0,
+    "time_max": 151319.0
+  },
+  "temporal_holdout": {
+    "rows": 42561,
+    "fraud_count": 52,
+    "legitimate_count": 42509,
+    "prevalence": 0.0012217758041399402,
+    "time_min": 151320.0,
+    "time_max": 172792.0,
+    "share_of_total": 0.15000740150708783
+  },
+  "ordering_invariant_holds": true,
+  "holdout_to_pool_prevalence_ratio": 0.6998801943121347,
+  "min_fraud_warning": 20,
+  "low_confidence": false
+}

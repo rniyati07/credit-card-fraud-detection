@@ -77,6 +77,34 @@ def test_invalid_eda_setting_raises(config_dict: dict[str, Any]) -> None:
         parse_config(raw)
 
 
+@pytest.mark.parametrize(
+    ("section", "key", "value", "message"),
+    [
+        ("split", "train", 0.8, "sum to 1"),
+        ("split", "val", 0.0, r"split.val must be in \(0, 1\)"),
+        ("split", "stratify", "yes", "must be a boolean"),
+        ("split", "prevalence_tolerance_pp", 0, "prevalence_tolerance_pp"),
+        ("split", "row_id_column", "Time", "row_id_column"),
+        ("temporal", "holdout_fraction", 1.0, "holdout_fraction"),
+        ("temporal", "min_fraud_warning", -1, "min_fraud_warning"),
+        ("preprocessing", "robust_scaled_features", ["Time"], "robust_scaled_features"),
+    ],
+)
+def test_invalid_m3_settings_raise(config_dict: dict[str, Any], section, key, value, message) -> None:
+    config_dict[section][key] = value
+    with pytest.raises(ConfigError, match=message):
+        parse_config(config_dict)
+
+
+def test_repository_config_m3_values() -> None:
+    config = load_config(Path(__file__).parents[1] / "config" / "config.yaml")
+
+    assert (config.split.train, config.split.val, config.split.test) == (0.70, 0.15, 0.15)
+    assert config.split.stratify is True
+    assert config.temporal.holdout_fraction == 0.15
+    assert config.preprocessing.robust_scaled_features == ("Amount",)
+
+
 def test_config_round_trips_through_yaml(tmp_path: Path, config_dict: dict[str, Any]) -> None:
     path = tmp_path / "c.yaml"
     path.write_text(yaml.safe_dump(config_dict))

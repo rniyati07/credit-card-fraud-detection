@@ -1,0 +1,106 @@
+{
+  "seed": 42,
+  "input": {
+    "path": "data/interim/clean.csv",
+    "sha256": "7d1a49b709fa863a92da7f2cd75640f81858a0a061e41cc0ab7d1e776878167e",
+    "rows": 283726,
+    "fraud_count": 473,
+    "legitimate_count": 283253,
+    "prevalence": 0.001667101358352777
+  },
+  "target": "Class",
+  "ordering_column": "Time",
+  "row_id_column": "row_id",
+  "feature_order": [
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "fractions": {
+    "train": 0.7,
+    "val": 0.15,
+    "test": 0.15
+  },
+  "stratify": true,
+  "prevalence_tolerance_pp": 0.02,
+  "development_pool": {
+    "rows": 241165,
+    "fraud_count": 421,
+    "legitimate_count": 240744,
+    "prevalence": 0.001745692782949433
+  },
+  "splits": {
+    "train": {
+      "rows": 168815,
+      "fraud_count": 295,
+      "legitimate_count": 168520,
+      "prevalence": 0.0017474750466486982,
+      "share_of_pool": 0.6999979267306616,
+      "prevalence_diff_pp": 0.00017822636992652005,
+      "within_tolerance": true
+    },
+    "val": {
+      "rows": 36175,
+      "fraud_count": 63,
+      "legitimate_count": 36112,
+      "prevalence": 0.001741534208707671,
+      "share_of_pool": 0.1500010366346692,
+      "prevalence_diff_pp": 0.000415857424176198,
+      "within_tolerance": true
+    },
+    "test": {
+      "rows": 36175,
+      "fraud_count": 63,
+      "legitimate_count": 36112,
+      "prevalence": 0.001741534208707671,
+      "share_of_pool": 0.1500010366346692,
+      "prevalence_diff_pp": 0.000415857424176198,
+      "within_tolerance": true
+    }
+  },
+  "temporal_holdout": {
+    "rows": 42561,
+    "fraud_count": 52,
+    "legitimate_count": 42509,
+    "prevalence": 0.0012217758041399402,
+    "share_of_total": 0.15000740150708783
+  },
+  "all_within_tolerance": true,
+  "integrity": {
+    "row_overlap": 0,
+    "rows_assigned": 283726,
+    "all_rows_assigned": true
+  },
+  "files": {
+    "train": "train.csv",
+    "val": "val.csv",
+    "test": "test.csv",
+    "temporal_holdout": "temporal_holdout.csv"
+  }
+}

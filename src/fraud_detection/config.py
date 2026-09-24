@@ -9,6 +9,7 @@ typed, already-validated values. Invariants that must never be configurable
 from __future__ import annotations
 
 import logging
+import math
 from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
@@ -42,6 +43,9 @@ class PathsConfig:
     interim: Path
     validation_report: Path
     eda_dir: Path
+    processed_dir: Path
+    split_summary: Path
+    temporal_split_summary: Path
 
 
 @dataclass(frozen=True)
@@ -78,6 +82,33 @@ class EdaConfig:
 
 
 @dataclass(frozen=True)
+class SplitConfig:
+    """Stratified train/validation/test split of the development pool (DOC-02 §6)."""
+
+    train: float
+    val: float
+    test: float
+    stratify: bool
+    prevalence_tolerance_pp: float
+    row_id_column: str
+
+
+@dataclass(frozen=True)
+class TemporalConfig:
+    """Chronological holdout carved out before the primary split (DOC-02 §21.3)."""
+
+    holdout_fraction: float
+    min_fraud_warning: int
+
+
+@dataclass(frozen=True)
+class PreprocessingConfig:
+    """Feature groups of the shared ColumnTransformer (DOC-02 §7)."""
+
+    robust_scaled_features: tuple[str, ...]
+
+
+@dataclass(frozen=True)
 class Config:
     """Validated project configuration."""
 
@@ -86,6 +117,9 @@ class Config:
     schema: SchemaConfig
     validation: ValidationConfig
     eda: EdaConfig
+    split: SplitConfig
+    temporal: TemporalConfig
+    preprocessing: PreprocessingConfig
 
 
 def _section(raw: Mapping[str, Any], key: str) -> Mapping[str, Any]:
@@ -215,6 +249,60 @@ def _parse_eda(section: Mapping[str, Any], schema: SchemaConfig) -> EdaConfig:
     return eda
 
 
+def _parse_split(section: Mapping[str, Any], schema: SchemaConfig) -> SplitConfig:
+    stratify = _get(section, "stratify", "split")
+    if not isinstance(stratify, bool):
+        raise ConfigError("Config key 'split.stratify' must be a boolean")
+    split = SplitConfig(
+        train=_float(_get(section, "train", "split"), "split.train"),
+        val=_float(_get(section, "val", "split"), "split.val"),
+        test=_float(_get(section, "test", "split"), "split.test"),
+        stratify=stratify,
+        prevalence_tolerance_pp=_float(
+            _get(section, "prevalence_tolerance_pp", "split"), "split.prevalence_tolerance_pp"
+        ),
+        row_id_column=str(_get(section, "row_id_column", "split")),
+    )
+
+    for key in ("train", "val", "test"):
+        if not 0.0 < getattr(split, key) < 1.0:
+            raise ConfigError(f"split.{key} must be in (0, 1)")
+    if not math.isclose(split.train + split.val + split.test, 1.0, abs_tol=1e-9):
+        raise ConfigError("split.train + split.val + split.test must sum to 1")
+    if split.prevalence_tolerance_pp <= 0:
+        raise ConfigError("split.prevalence_tolerance_pp must be > 0")
+    if not split.row_id_column or split.row_id_column in schema.required_columns:
+        raise ConfigError("split.row_id_column must be a non-empty name not used by the schema")
+    return split
+
+
+def _parse_temporal(section: Mapping[str, Any]) -> TemporalConfig:
+    temporal = TemporalConfig(
+        holdout_fraction=_float(
+            _get(section, "holdout_fraction", "temporal"), "temporal.holdout_fraction"
+        ),
+        min_fraud_warning=_int(
+            _get(section, "min_fraud_warning", "temporal"), "temporal.min_fraud_warning"
+        ),
+    )
+    if not 0.0 < temporal.holdout_fraction < 1.0:
+        raise ConfigError("temporal.holdout_fraction must be in (0, 1)")
+    if temporal.min_fraud_warning < 0:
+        raise ConfigError("temporal.min_fraud_warning must be >= 0")
+    return temporal
+
+
+def _parse_preprocessing(section: Mapping[str, Any], schema: SchemaConfig) -> PreprocessingConfig:
+    robust = _str_list(
+        _get(section, "robust_scaled_features", "preprocessing"),
+        "preprocessing.robust_scaled_features",
+    )
+    unknown = sorted(set(robust) - set(schema.features))
+    if unknown:
+        raise ConfigError(f"preprocessing.robust_scaled_features not in schema.features: {unknown}")
+    return PreprocessingConfig(robust_scaled_features=robust)
+
+
 def parse_config(raw: Mapping[str, Any]) -> Config:
     """Build a validated :class:`Config` from an already-parsed YAML mapping.
 
@@ -235,10 +323,16 @@ def parse_config(raw: Mapping[str, Any]) -> Config:
             interim=Path(_get(paths, "interim", "paths")),
             validation_report=Path(_get(paths, "validation_report", "paths")),
             eda_dir=Path(_get(paths, "eda_dir", "paths")),
+            processed_dir=Path(_get(paths, "processed_dir", "paths")),
+            split_summary=Path(_get(paths, "split_summary", "paths")),
+            temporal_split_summary=Path(_get(paths, "temporal_split_summary", "paths")),
         ),
         schema=schema,
         validation=_parse_validation(_section(raw, "validation"), schema),
         eda=_parse_eda(_section(raw, "eda"), schema),
+        split=_parse_split(_section(raw, "split"), schema),
+        temporal=_parse_temporal(_section(raw, "temporal")),
+        preprocessing=_parse_preprocessing(_section(raw, "preprocessing"), schema),
     )
 
 
