@@ -1,0 +1,910 @@
+schema: '2.0'
+stages:
+  validate:
+    cmd: python -m fraud_detection.pipeline.validate
+    deps:
+    - path: data/raw/creditcard.csv
+      hash: md5
+      md5: e90efcb83d69faf99fcab8b0255024de
+      size: 150828752
+    - path: src/fraud_detection/config.py
+      hash: md5
+      md5: bd2c7626b1213edeb1d4945a48092329
+      size: 24892
+    - path: src/fraud_detection/data/validate.py
+      hash: md5
+      md5: 97030ed780eca34120d181b6c83be338
+      size: 22057
+    - path: src/fraud_detection/pipeline/validate.py
+      hash: md5
+      md5: 084a7405f68cfb2691c1b8f8acb87934
+      size: 3666
+    params:
+      config/config.yaml:
+        paths.interim: data/interim/clean.csv
+        paths.raw: data/raw/creditcard.csv
+        paths.validation_report: reports/validation/validation_report.json
+        project.seed: 42
+        schema:
+          target: Class
+          positive_label: 1
+          ordering_column: Time
+          features:
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          required_columns:
+          - Time
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          - Class
+        validation:
+          min_rows: 1
+          expected_fraud_rate:
+            min: 0.0001
+            max: 0.01
+          non_negative_columns:
+          - Time
+          - Amount
+          outlier_iqr_multiplier: 3.0
+    outs:
+    - path: data/interim/clean.csv
+      hash: md5
+      md5: bf778f17e29790dbc146dce17a62e6f7
+      size: 150532102
+    - path: reports/validation/validation_report.json
+      hash: md5
+      md5: c420387d544451e159377a8c8779526e
+      size: 10272
+  split:
+    cmd: python -m fraud_detection.pipeline.split
+    deps:
+    - path: data/interim/clean.csv
+      hash: md5
+      md5: bf778f17e29790dbc146dce17a62e6f7
+      size: 150532102
+    - path: src/fraud_detection/config.py
+      hash: md5
+      md5: bd2c7626b1213edeb1d4945a48092329
+      size: 24892
+    - path: src/fraud_detection/data/split.py
+      hash: md5
+      md5: 116720865ca2314bd2a25907975a3b2a
+      size: 15933
+    - path: src/fraud_detection/data/validate.py
+      hash: md5
+      md5: 97030ed780eca34120d181b6c83be338
+      size: 22057
+    - path: src/fraud_detection/pipeline/split.py
+      hash: md5
+      md5: 4316bc32c0e18ecd8257eaacee6dab60
+      size: 4208
+    params:
+      config/config.yaml:
+        paths.interim: data/interim/clean.csv
+        paths.processed_dir: data/processed
+        paths.split_summary: reports/split_summary.json
+        paths.temporal_split_summary: 
+          reports/temporal/temporal_split_summary.json
+        project.seed: 42
+        schema:
+          target: Class
+          positive_label: 1
+          ordering_column: Time
+          features:
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          required_columns:
+          - Time
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          - Class
+        split:
+          train: 0.7
+          val: 0.15
+          test: 0.15
+          stratify: true
+          prevalence_tolerance_pp: 0.02
+          row_id_column: row_id
+        temporal:
+          holdout_fraction: 0.15
+          min_fraud_warning: 20
+    outs:
+    - path: data/processed/temporal_holdout.csv
+      hash: md5
+      md5: a721330aa9999dde0cfd305fe554f294
+      size: 22883475
+    - path: data/processed/test.csv
+      hash: md5
+      md5: cd27ca68c0eae4f3adcf748cebe91ebe
+      size: 19385835
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 378355674d1470588951ec039fd0db24
+      size: 90469188
+    - path: data/processed/val.csv
+      hash: md5
+      md5: ecfba47fad67adf7090817832f017a97
+      size: 19385240
+    - path: reports/split_summary.json
+      hash: md5
+      md5: 5576a1fff398a2962b65c0ef9f6d4c20
+      size: 2239
+    - path: reports/temporal/temporal_split_summary.json
+      hash: md5
+      md5: 7f7e572190fc12dd5c6aa9c51865efc2
+      size: 874
+  train:
+    cmd:
+    - python -m fraud_detection.pipeline.tune
+    - python -m fraud_detection.pipeline.select
+    deps:
+    - path: data/processed/train.csv
+      hash: md5
+      md5: 378355674d1470588951ec039fd0db24
+      size: 90469188
+    - path: data/processed/val.csv
+      hash: md5
+      md5: ecfba47fad67adf7090817832f017a97
+      size: 19385240
+    - path: reports/baseline/model_comparison.json
+      hash: md5
+      md5: b4529f29ddca7107688c5c40a6fff21a
+      size: 2860
+    - path: src/fraud_detection/config.py
+      hash: md5
+      md5: bd2c7626b1213edeb1d4945a48092329
+      size: 24892
+    - path: src/fraud_detection/data/split.py
+      hash: md5
+      md5: 116720865ca2314bd2a25907975a3b2a
+      size: 15933
+    - path: src/fraud_detection/evaluation/metrics.py
+      hash: md5
+      md5: 4c272e7ea1af6a1763740608436782bf
+      size: 3379
+    - path: src/fraud_detection/evaluation/plots.py
+      hash: md5
+      md5: c7a1b57eaaec51fb709259619b6ac822
+      size: 4692
+    - path: src/fraud_detection/evaluation/threshold.py
+      hash: md5
+      md5: 2638f7095c2fa304b6bcb9df3250d3a1
+      size: 6394
+    - path: src/fraud_detection/features
+      hash: md5
+      md5: 3ea38342a61584fba80f2f54ecd0b49a.dir
+      size: 4254
+      nfiles: 2
+    - path: src/fraud_detection/inference
+      hash: md5
+      md5: 57bcf9bb60e1eba6c79e18b8c736d0b2.dir
+      size: 10712
+      nfiles: 2
+    - path: src/fraud_detection/models
+      hash: md5
+      md5: 66debf5540616c77c47f10c87363bc55.dir
+      size: 17703
+      nfiles: 4
+    - path: src/fraud_detection/pipeline/select.py
+      hash: md5
+      md5: cd98a071e0b61e9a2c2686889826ff27
+      size: 29130
+    - path: src/fraud_detection/pipeline/train.py
+      hash: md5
+      md5: fecd86379c08d391c2ef0d39bf4244dc
+      size: 15522
+    - path: src/fraud_detection/pipeline/tune.py
+      hash: md5
+      md5: d8ba1184730bf9f0cb1a9bbaf3c5c05c
+      size: 16705
+    - path: src/fraud_detection/tracking
+      hash: md5
+      md5: 6cd3b0253ed26244ae319378c5d730ac.dir
+      size: 8864
+      nfiles: 2
+    params:
+      config/config.yaml:
+        imbalance:
+          strategy: class_weight
+        mlflow:
+          tracking_uri: sqlite:///mlflow.db
+          experiment_name: credit-card-fraud-detection
+        models:
+          enabled:
+          - logistic_regression
+          - random_forest
+          - xgboost
+          logistic_regression:
+            solver: lbfgs
+            max_iter: 1000
+            class_weight: balanced
+          random_forest:
+            class_weight: balanced_subsample
+            n_jobs: -1
+          xgboost:
+            objective: binary:logistic
+            eval_metric: aucpr
+            tree_method: hist
+            n_jobs: -1
+        paths.baseline_dir: reports/baseline
+        paths.candidates_dir: models/candidates
+        paths.figures_dir: reports/figures
+        paths.models_dir: models
+        paths.processed_dir: data/processed
+        paths.raw: data/raw/creditcard.csv
+        paths.reports_dir: reports
+        paths.tuning_dir: reports/tuning
+        paths.validation_report: reports/validation/validation_report.json
+        preprocessing:
+          robust_scaled_features:
+          - Amount
+        project.model_version: 1.0.0
+        project.seed: 42
+        schema:
+          target: Class
+          positive_label: 1
+          ordering_column: Time
+          features:
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          required_columns:
+          - Time
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          - Class
+        selection:
+          pr_auc_tie_tolerance: 0.01
+        threshold:
+          r_min: 0.8
+          r_min_confirmed: true
+          grid:
+            start: 0.01
+            stop: 0.99
+            step: 0.01
+          include_pr_curve_points: true
+          fallback: f2
+          reference_threshold: 0.5
+        tuning:
+          cv_folds: 3
+          n_iter: 10
+          scoring: average_precision
+          search_spaces:
+            logistic_regression:
+              C:
+              - 0.01
+              - 0.1
+              - 1
+              - 10
+            random_forest:
+              n_estimators:
+              - 200
+              - 400
+              max_depth:
+              - 
+              - 10
+              - 20
+              min_samples_leaf:
+              - 1
+              - 3
+              - 5
+            xgboost:
+              n_estimators:
+              - 200
+              - 400
+              - 600
+              max_depth:
+              - 3
+              - 4
+              - 6
+              learning_rate:
+              - 0.03
+              - 0.1
+              subsample:
+              - 0.8
+              - 1.0
+              colsample_bytree:
+              - 0.8
+              - 1.0
+              min_child_weight:
+              - 1
+              - 5
+    outs:
+    - path: models/candidates/lr.joblib
+      hash: md5
+      md5: 194b91fb729cbaf3fe33c325d8fbc960
+      size: 5082
+    - path: models/candidates/rf.joblib
+      hash: md5
+      md5: cb608e17f5af49d9b557444fa0649bea
+      size: 9731035
+    - path: models/candidates/xgb.joblib
+      hash: md5
+      md5: bbfc2c628f8bff019c7104a59eb50b7e
+      size: 552625
+    - path: models/model.joblib
+      hash: md5
+      md5: bbfc2c628f8bff019c7104a59eb50b7e
+      size: 552625
+    - path: models/train_metadata.json
+      hash: md5
+      md5: 3eeb3ca2b0e2fc2f85b01d5258ac62e0
+      size: 4642
+    - path: reports/figures/threshold_analysis_logistic_regression.png
+      hash: md5
+      md5: 3296a37fe2d3d95e64ea21972f09cbbd
+      size: 52273
+    - path: reports/figures/threshold_analysis_random_forest.png
+      hash: md5
+      md5: aef0a020cff1be225c2fb66909dc3698
+      size: 55603
+    - path: reports/figures/threshold_analysis_xgboost.png
+      hash: md5
+      md5: 46dd999d944d5888c189cd60557fe9ba
+      size: 46554
+    - path: reports/figures/val_confusion_matrix_logistic_regression.png
+      hash: md5
+      md5: d064e016fdeda29a2448b81a6b2306c2
+      size: 17029
+    - path: reports/figures/val_confusion_matrix_random_forest.png
+      hash: md5
+      md5: d4bafa3e2d96c53582ca96ec81547e64
+      size: 16382
+    - path: reports/figures/val_confusion_matrix_xgboost.png
+      hash: md5
+      md5: 3a02f652e7d4dc1b06c41cb64c8b1d41
+      size: 14853
+    - path: reports/model_comparison.csv
+      hash: md5
+      md5: ffa9e0a016382fce1e03ee38e807326e
+      size: 1439
+    - path: reports/model_selection.md
+      hash: md5
+      md5: 9d9d8663a13403986ee51acb908dca32
+      size: 3108
+    - path: reports/threshold_analysis_logistic_regression.csv
+      hash: md5
+      md5: 1b8abb965cadd03933841ead597ff67d
+      size: 4720356
+    - path: reports/threshold_analysis_random_forest.csv
+      hash: md5
+      md5: bf2694208a4fd7b8ca0b7f1702974e38
+      size: 94559
+    - path: reports/threshold_analysis_xgboost.csv
+      hash: md5
+      md5: a00362fbf6ecc422c1dfb454c9eb2451
+      size: 4577574
+    - path: reports/tuning/best_model.json
+      hash: md5
+      md5: a178d3942a44b8529bd1aeffd319066d
+      size: 1720
+    - path: reports/tuning/tuning_results.csv
+      hash: md5
+      md5: 959791d5042427676142568f2305e1ce
+      size: 5706
+    - path: reports/tuning/tuning_summary.json
+      hash: md5
+      md5: 9c79fc49c29176fa8c563eff193128ea
+      size: 9425
+  evaluate:
+    cmd: python -m fraud_detection.pipeline.evaluate
+    deps:
+    - path: data/processed/test.csv
+      hash: md5
+      md5: cd27ca68c0eae4f3adcf748cebe91ebe
+      size: 19385835
+    - path: models/model.joblib
+      hash: md5
+      md5: bbfc2c628f8bff019c7104a59eb50b7e
+      size: 552625
+    - path: models/train_metadata.json
+      hash: md5
+      md5: 3eeb3ca2b0e2fc2f85b01d5258ac62e0
+      size: 4642
+    - path: src/fraud_detection/config.py
+      hash: md5
+      md5: bd2c7626b1213edeb1d4945a48092329
+      size: 24892
+    - path: src/fraud_detection/data/split.py
+      hash: md5
+      md5: 116720865ca2314bd2a25907975a3b2a
+      size: 15933
+    - path: src/fraud_detection/evaluation/evaluate.py
+      hash: md5
+      md5: 1f305b4dc24c0ab9e8bef31c2fead364
+      size: 11016
+    - path: src/fraud_detection/evaluation/metrics.py
+      hash: md5
+      md5: 4c272e7ea1af6a1763740608436782bf
+      size: 3379
+    - path: src/fraud_detection/evaluation/plots.py
+      hash: md5
+      md5: c7a1b57eaaec51fb709259619b6ac822
+      size: 4692
+    - path: src/fraud_detection/evaluation/threshold.py
+      hash: md5
+      md5: 2638f7095c2fa304b6bcb9df3250d3a1
+      size: 6394
+    - path: src/fraud_detection/features/preprocess.py
+      hash: md5
+      md5: 9b127899e59b2c405c2ba01ad4e15d0b
+      size: 4183
+    - path: src/fraud_detection/inference
+      hash: md5
+      md5: 57bcf9bb60e1eba6c79e18b8c736d0b2.dir
+      size: 10712
+      nfiles: 2
+    - path: src/fraud_detection/models/train.py
+      hash: md5
+      md5: 0159a107f5cfbc59687b6857ef06d9e3
+      size: 4893
+    - path: src/fraud_detection/pipeline/evaluate.py
+      hash: md5
+      md5: 45d3a462e18dd78fa602304a9892aeb1
+      size: 8922
+    - path: src/fraud_detection/pipeline/train.py
+      hash: md5
+      md5: fecd86379c08d391c2ef0d39bf4244dc
+      size: 15522
+    - path: src/fraud_detection/tracking
+      hash: md5
+      md5: 6cd3b0253ed26244ae319378c5d730ac.dir
+      size: 8864
+      nfiles: 2
+    params:
+      config/config.yaml:
+        evaluation:
+          bootstrap:
+            enabled: true
+            n: 1000
+            confidence: 0.95
+          inconclusive_fraud_cases: 2
+        mlflow:
+          tracking_uri: sqlite:///mlflow.db
+          experiment_name: credit-card-fraud-detection
+        paths.figures_dir: reports/figures
+        paths.models_dir: models
+        paths.processed_dir: data/processed
+        paths.raw: data/raw/creditcard.csv
+        paths.reports_dir: reports
+        paths.test_metrics: reports/test_metrics.json
+        paths.validation_report: reports/validation/validation_report.json
+        project.seed: 42
+        schema:
+          target: Class
+          positive_label: 1
+          ordering_column: Time
+          features:
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          required_columns:
+          - Time
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          - Class
+        threshold.reference_threshold: 0.5
+    outs:
+    - path: reports/figures/test_confusion_matrix.png
+      hash: md5
+      md5: f9dc2827d5368ce89e77d207fb34fda5
+      size: 14276
+    - path: reports/figures/test_pr_curve.png
+      hash: md5
+      md5: 0ee54b8d594d64e17543a3ce7e452a80
+      size: 27971
+    - path: reports/figures/test_roc_curve.png
+      hash: md5
+      md5: 5108dfc091161b714b4859019b2a55a4
+      size: 31738
+    - path: reports/test_metrics.json
+      hash: md5
+      md5: 9be997fc8cb2573e0dce6b380ee44b38
+      size: 2671
+  evaluate_temporal:
+    cmd: python -m fraud_detection.pipeline.evaluate_temporal
+    deps:
+    - path: data/processed/temporal_holdout.csv
+      hash: md5
+      md5: a721330aa9999dde0cfd305fe554f294
+      size: 22883475
+    - path: models/model.joblib
+      hash: md5
+      md5: bbfc2c628f8bff019c7104a59eb50b7e
+      size: 552625
+    - path: models/train_metadata.json
+      hash: md5
+      md5: 3eeb3ca2b0e2fc2f85b01d5258ac62e0
+      size: 4642
+    - path: reports/temporal/temporal_split_summary.json
+      hash: md5
+      md5: 7f7e572190fc12dd5c6aa9c51865efc2
+      size: 874
+    - path: reports/test_metrics.json
+      hash: md5
+      md5: 9be997fc8cb2573e0dce6b380ee44b38
+      size: 2671
+    - path: src/fraud_detection/config.py
+      hash: md5
+      md5: bd2c7626b1213edeb1d4945a48092329
+      size: 24892
+    - path: src/fraud_detection/data/split.py
+      hash: md5
+      md5: 116720865ca2314bd2a25907975a3b2a
+      size: 15933
+    - path: src/fraud_detection/evaluation/evaluate.py
+      hash: md5
+      md5: 1f305b4dc24c0ab9e8bef31c2fead364
+      size: 11016
+    - path: src/fraud_detection/evaluation/evaluate_temporal.py
+      hash: md5
+      md5: c9bef6e4b42e3aa613fb6d2623df17ef
+      size: 19067
+    - path: src/fraud_detection/evaluation/metrics.py
+      hash: md5
+      md5: 4c272e7ea1af6a1763740608436782bf
+      size: 3379
+    - path: src/fraud_detection/evaluation/plots.py
+      hash: md5
+      md5: c7a1b57eaaec51fb709259619b6ac822
+      size: 4692
+    - path: src/fraud_detection/evaluation/threshold.py
+      hash: md5
+      md5: 2638f7095c2fa304b6bcb9df3250d3a1
+      size: 6394
+    - path: src/fraud_detection/features/preprocess.py
+      hash: md5
+      md5: 9b127899e59b2c405c2ba01ad4e15d0b
+      size: 4183
+    - path: src/fraud_detection/inference
+      hash: md5
+      md5: 57bcf9bb60e1eba6c79e18b8c736d0b2.dir
+      size: 10712
+      nfiles: 2
+    - path: src/fraud_detection/models/train.py
+      hash: md5
+      md5: 0159a107f5cfbc59687b6857ef06d9e3
+      size: 4893
+    - path: src/fraud_detection/pipeline/evaluate.py
+      hash: md5
+      md5: 45d3a462e18dd78fa602304a9892aeb1
+      size: 8922
+    - path: src/fraud_detection/pipeline/evaluate_temporal.py
+      hash: md5
+      md5: 51f9ff582f7fda6bb2e6b7e5e47b6508
+      size: 11279
+    - path: src/fraud_detection/pipeline/train.py
+      hash: md5
+      md5: fecd86379c08d391c2ef0d39bf4244dc
+      size: 15522
+    - path: src/fraud_detection/tracking
+      hash: md5
+      md5: 6cd3b0253ed26244ae319378c5d730ac.dir
+      size: 8864
+      nfiles: 2
+    params:
+      config/config.yaml:
+        evaluation:
+          bootstrap:
+            enabled: true
+            n: 1000
+            confidence: 0.95
+          inconclusive_fraud_cases: 2
+        mlflow:
+          tracking_uri: sqlite:///mlflow.db
+          experiment_name: credit-card-fraud-detection
+        paths.models_dir: models
+        paths.processed_dir: data/processed
+        paths.raw: data/raw/creditcard.csv
+        paths.reports_dir: reports
+        paths.temporal_dir: reports/temporal
+        paths.temporal_split_summary: 
+          reports/temporal/temporal_split_summary.json
+        paths.test_metrics: reports/test_metrics.json
+        paths.validation_report: reports/validation/validation_report.json
+        project.seed: 42
+        schema:
+          target: Class
+          positive_label: 1
+          ordering_column: Time
+          features:
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          required_columns:
+          - Time
+          - V1
+          - V2
+          - V3
+          - V4
+          - V5
+          - V6
+          - V7
+          - V8
+          - V9
+          - V10
+          - V11
+          - V12
+          - V13
+          - V14
+          - V15
+          - V16
+          - V17
+          - V18
+          - V19
+          - V20
+          - V21
+          - V22
+          - V23
+          - V24
+          - V25
+          - V26
+          - V27
+          - V28
+          - Amount
+          - Class
+        temporal:
+          holdout_fraction: 0.15
+          min_fraud_warning: 20
+        threshold.reference_threshold: 0.5
+    outs:
+    - path: models/model_config.json
+      hash: md5
+      md5: 299078263d924ab70073539789ecf2e1
+      size: 7403
+    - path: reports/temporal/temporal_confusion_matrix.png
+      hash: md5
+      md5: b74819b31364a21c8d5089b0d1ddcfa5
+      size: 16391
+    - path: reports/temporal/temporal_metrics.json
+      hash: md5
+      md5: c8c456fd7d890927cc641e245368391f
+      size: 4516
+    - path: reports/temporal/temporal_robustness.md
+      hash: md5
+      md5: 98ff8ef82c3147a13d410640882c1e04
+      size: 5938
+    - path: reports/temporal/temporal_vs_random_comparison.csv
+      hash: md5
+      md5: 468a2b0d300139351fce6b5b05009ded
+      size: 1479

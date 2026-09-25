@@ -40,7 +40,7 @@ Reference (threshold 0.50, not used for selection):
 
 ## Decision
 
-- **Selected model:** `xgboost` (version `1.0.0+b8aee2c`), frozen as `models/model.joblib`.
+- **Selected model:** `xgboost` (version `1.0.0+4b6f01e`), frozen as `models/model.joblib`.
 - **Threshold:** 0.911154 (recall>=r_min_max_precision).
 - **At this threshold:** detects 51 of 63 validation frauds (recall 81.0%), misses 12, flags 1 legitimate transaction (precision 98.1%).
 - **Granularity:** one validation fraud = 1.6 pp of recall; small differences are noisy.

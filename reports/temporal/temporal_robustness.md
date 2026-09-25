@@ -1,12 +1,12 @@
 # Temporal Robustness Assessment
 
-> Secondary, evaluation-only experiment (DOC-02 §21). The frozen `xgboost` (version `1.0.0+b8aee2c`) and its frozen threshold 0.9111537337 were evaluated once on the chronologically latest transactions and compared with the primary random test. Nothing was retrained, retuned or reselected; these results never feed back into the model, threshold or r_min (DOC-02 §21.6). Regenerate with `python -m fraud_detection.pipeline.evaluate_temporal`.
+> Secondary, evaluation-only experiment (DOC-02 §21). The frozen `xgboost` (version `1.0.0+4b6f01e`) and its frozen threshold 0.9111537337 were evaluated once on the chronologically latest transactions and compared with the primary random test. Nothing was retrained, retuned or reselected; these results never feed back into the model, threshold or r_min (DOC-02 §21.6). Regenerate with `python -m fraud_detection.pipeline.evaluate_temporal`.
 
 ## Setup
 
 | Item | Value |
 |---|---|
-| Model / version | `xgboost` / `1.0.0+b8aee2c` |
+| Model / version | `xgboost` / `1.0.0+4b6f01e` |
 | Frozen threshold | 0.9111537337 (recall>=r_min_max_precision) |
 | r_min | 0.8 (confirmed) |
 | Temporal holdout | 42,561 rows, 52 frauds, prevalence 0.00122 |

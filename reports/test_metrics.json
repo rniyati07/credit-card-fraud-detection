@@ -2,13 +2,13 @@
   "stage": "evaluate",
   "scope": "Primary test evaluation of the frozen model and threshold (DOC-02 \u00a714). Evaluated once; reported as-is; never used to retrain, retune or reselect.",
   "model_name": "xgboost",
-  "model_version": "1.0.0+b8aee2c",
+  "model_version": "1.0.0+4b6f01e",
   "threshold": 0.9111537337303162,
   "threshold_objective": "recall>=r_min_max_precision",
   "r_min": 0.8,
   "r_min_status": "confirmed",
   "model_sha256": "a5b4b31f71aa3f04f126d1416ff1653ab8938e619743a7d4e4cd77d8dee71332",
-  "mlflow_run_id": "92b2211618344a8789f60d001605d4dc",
+  "mlflow_run_id": "ebf48c5a741b442e91ac92980b22d47d",
   "reference_threshold": 0.5,
   "dataset": {
     "path": "data/processed/test.csv",
@@ -101,9 +101,9 @@
     }
   },
   "evaluation_lineage": {
-    "git_commit": "b8aee2c1650fada0e77808da68ab4d2eb4045a9f",
-    "git_dirty": "true",
-    "git_dirty_excludes": "reports,models",
+    "git_commit": "4b6f01efffa399c57f0a70f84a9fd8c35bbf8e26",
+    "git_dirty": "false",
+    "git_dirty_excludes": "reports,models,dvc.lock",
     "config_hash": "d8e45e87c4d8f9d7fe6cc3e863b86e15d27e78cbba067badf1a918a035929cd0"
   }
 }

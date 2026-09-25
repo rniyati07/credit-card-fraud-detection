@@ -60,7 +60,7 @@
   "lineage": {
     "data_sha256": "76274b691b16a6c49d3f159c883398e03ccd6d1ee12d9d8ee38f4b4b98551a89",
     "data_dvc_md5": "e90efcb83d69faf99fcab8b0255024de",
-    "config_hash": "e7e71de2bfb298313c0cba7fb713d3766c3dfc7fa247fe19d0da90334aef41da"
+    "config_hash": "d8e45e87c4d8f9d7fe6cc3e863b86e15d27e78cbba067badf1a918a035929cd0"
   },
   "mlflow": {
     "tracking_uri": "sqlite:///mlflow.db",
